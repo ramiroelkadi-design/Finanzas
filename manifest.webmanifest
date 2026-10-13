@@ -1,7 +1,7 @@
 {
-  "id": "./finanzas-app",
-  "name": "Mis finanzas",
-  "short_name": "Finanzas",
+  "id": "./Flujo",
+  "name": "Flujo",
+  "short_name": "Flujo",
   "description": "Gastos, ingresos, tarjetas y proyección personal",
   "start_url": "./",
   "scope": "./",
