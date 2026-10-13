@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis finanzas</title>
+<style>
+:root{--bg:#f4f6f9;--card:#ffffff;--text:#1b2430;--muted:#6a7687;--line:#e3e8ef;--accent:#2f6fed;--accent-t:#ffffff;--good:#1a9b5b;--bad:#d8453d;--warn:#d99a1d;--chip:#eef2f8;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f141a;--card:#18202a;--text:#e8edf4;--muted:#94a1b3;--line:#2a3441;--accent:#6b9bff;--accent-t:#0b1220;--good:#3cc583;--bad:#ff7a70;--warn:#f0b94a;--chip:#212b38}}
+:root[data-theme="dark"]{--bg:#0f141a;--card:#18202a;--text:#e8edf4;--muted:#94a1b3;--line:#2a3441;--accent:#6b9bff;--accent-t:#0b1220;--good:#3cc583;--bad:#ff7a70;--warn:#f0b94a;--chip:#212b38}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px 0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-size:19px;margin:0}
+h2{font-size:16px;margin:0 0 10px}
+h3{font-size:14px;margin:14px 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tabs{display:flex;gap:4px;margin-top:8px}
+.tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px 4px;font:inherit;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
+.tabs button.on{color:var(--accent);border-color:var(--accent)}
+main{max-width:860px;margin:0 auto;padding:14px}
+section[hidden]{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:520px){.g3{grid-template-columns:repeat(1,minmax(0,1fr))}}
+.stat{background:var(--chip);border-radius:12px;padding:10px 12px}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat .v{font-size:19px;font-weight:700;margin-top:2px}
+.muted{color:var(--muted)}.small{font-size:12px}
+.good{color:var(--good)}.bad{color:var(--bad)}
+input,select,button{font:inherit;color:var(--text)}
+input,select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+input[type=checkbox]{width:auto}
+.btn{background:var(--accent);color:var(--accent-t);border:0;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--chip);color:var(--text)}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:120px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--chip);border:0;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.seg{display:inline-flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:5px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px}
+.seg button.on{background:var(--card);color:var(--text);font-weight:600}
+#chatLog{max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.b{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;white-space:pre-wrap}
+.b.me{align-self:flex-end;background:var(--accent);color:var(--accent-t);border-bottom-right-radius:4px}
+.b.bot{align-self:flex-start;background:var(--chip);border-bottom-left-radius:4px}
+.pies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:700px){.pies{grid-template-columns:1fr}}
+.pie-wrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.pie{width:140px;height:140px;flex:none;border-radius:50%}
+.legend{list-style:none;margin:0;padding:0;flex:1;min-width:150px;font-size:13px}
+.legend li{display:flex;align-items:center;gap:7px;padding:2px 0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.lg-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-v{color:var(--muted);white-space:nowrap}
+.exp{border-top:1px solid var(--line);padding:10px 0}
+.exp:first-child{border-top:0}
+.exp-top{display:flex;justify-content:space-between;gap:10px}
+.amt{text-align:right;font-weight:700;white-space:nowrap}
+.exp-ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.exp-ctl select,.exp-ctl input[type=text],.exp-ctl input[type=number]{padding:5px 8px;font-size:13px}
+.chk{display:inline-flex;gap:4px;align-items:center;font-size:13px}
+.tag{display:inline-block;background:var(--chip);border-radius:6px;padding:1px 7px;font-size:11px;color:var(--muted)}
+.bar{height:8px;background:var(--chip);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.bar.over>i{background:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:6px 4px;text-align:right;border-top:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--muted);font-weight:600;border-top:0}
+.scroll{overflow-x:auto}
+.empty{color:var(--muted);padding:8px 0}
+svg text{fill:var(--muted);font-size:9px}
+.thumb{border:1px solid var(--line);border-radius:8px;padding:0;background:none;cursor:pointer;line-height:0;overflow:hidden}
+.thumb img{width:56px;height:56px;object-fit:cover}
+#lb{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+#lb[hidden]{display:none}
+#lb img{max-width:100%;max-height:100%;border-radius:8px}
+details summary{list-style:revert}
+[hidden]{display:none!important}
+.mw{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.mw.grow{flex:1;min-width:120px}
+.mw>input{flex:1 1 auto;min-width:0}
+.mic{background:var(--chip);border:0;border-radius:10px;padding:6px 8px;cursor:pointer;line-height:1;flex:none}
+.mic.rec{background:var(--bad);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--text);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:13px;max-width:90vw;text-align:center}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#2f6fed">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>💸 Mis finanzas</h1>
+    <label class="f" style="flex-direction:row;align-items:center;gap:8px">Mes
+      <input type="month" id="month" data-act="month">
+    </label>
+  </div>
+  <nav class="tabs">
+    <button data-act="tab" data-tab="gastos" class="on">Gastos</button>
+    <button data-act="tab" data-tab="ing">Ingresos</button>
+    <button data-act="tab" data-tab="proy">Proyección</button>
+  </nav>
+</header>
+
+<main>
+<!-- ================= GASTOS ================= -->
+<section id="t-gastos">
+  <div class="seg" style="margin-bottom:12px"><button data-act="gview" data-v="main" class="on">Gastos</button><button data-act="gview" data-v="cards">💳 Tarjetas</button><button data-act="gview" data-v="adj">⚖️ Ajuste</button></div>
+  <div id="cardBanner"></div>
+  <div id="g-main">
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">Cargá tus gastos escribiendo</h2>
+      <span class="tag" id="aiBadge">…</span>
+    </div>
+    <div id="chatLog"></div>
+    <div class="row">
+      <input id="chatIn" class="grow" placeholder='Ej: "Uber 3500 con tarjeta" o "super 25 lucas débito a medias con Juan"' autocomplete="off">
+      <button class="btn" data-act="send" id="sendBtn">Enviar</button>
+    </div>
+    <div class="chips">
+      <button class="chip" data-act="ex" data-text="Uber 3500 crédito">Uber 3500 crédito</button>
+      <button class="chip" data-act="ex" data-text="Súper 25 lucas débito, compartido con Juan">Súper 25 lucas compartido</button>
+      <button class="chip" data-act="ex" data-text="Netflix 6 USD ayer">Netflix 6 USD ayer</button>
+      <button class="chip" data-act="ex" data-text="Cena 18000 efectivo, pagó Ari, compartido">Pagó Ari, compartido</button>
+      <button class="chip" data-act="ex" data-text="Regalo 40000 débito, 100% de Ari">100% de Ari</button>
+      <button class="chip" data-act="ex" data-text="Cena 18000 efectivo a medias; nafta 30000 débito">Varios a la vez (con ;)</button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="f">Repetición<select id="rpMode" data-act="rpmode"><option value="once">Gasto único</option><option value="cuota">En cuotas</option><option value="mensual">Todos los meses</option></select></label>
+      <label class="f" id="rpNL" hidden><span id="rpNT">Cuotas</span><input id="rpN" type="number" min="2" max="60" value="6" style="width:80px"></label>
+      <label class="f" id="rpAL" hidden>El monto es<select id="rpAmt"><option value="total">el total</option><option value="each">cada cuota</option></select></label>
+      <label class="f" id="rpSL" hidden>Empieza<select id="rpStart"><option value="0">este mes</option><option value="1">el mes que viene</option></select></label>
+    </div>
+    <p class="muted small" style="margin:8px 0 0">También podés escribirlo: “TV 600000 en 6 cuotas”, “6 cuotas de 100000” o “Netflix 6 USD todos los meses por 12 meses”.</p>
+  </div>
+  <div id="recurDyn"></div>
+  <div id="gastosDyn"></div>
+  </div>
+
+  <div id="g-cards" hidden>
+    <div class="card">
+      <h2>Nuevo resumen de tarjeta</h2>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f">Tarjeta<input id="kCard" list="dlCards" placeholder="Visa, Master…" style="width:130px"></label>
+        <label class="f">Banco<input id="kBank" list="dlBanks" placeholder="ICBC…" style="width:130px"></label>
+        <label class="f">Cierre<input type="date" id="kClose"></label>
+        <label class="f">Vencimiento<input type="date" id="kDue"></label>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f">Subtotal en pesos<input id="kSub" type="number" step="any" data-act="ksum" style="width:150px"></label>
+        <label class="f">Impuestos (se restan)<input id="kTax" type="number" step="any" data-act="ksum" style="width:140px"></label>
+        <label class="f">Consumos en USD<input id="kUsd" type="number" step="any" style="width:120px"></label>
+      </div>
+      <h3 style="margin-top:6px">Partes de otras personas (opcional)</h3>
+      <div class="row">
+        <input id="kShName" list="dlPeople" placeholder="Persona" style="width:130px">
+        <input id="kShAmt" type="number" step="any" placeholder="Monto en pesos" style="width:150px">
+        <button class="btn ghost" data-act="addshare">Agregar parte</button>
+      </div>
+      <div id="kShares" class="chips"></div>
+      <div id="kTotal" class="small" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:10px"><button class="btn" data-act="addcard">Guardar resumen</button>
+        <label class="btn ghost" style="cursor:pointer">Importar historial<input type="file" accept="application/json" data-act="import" hidden></label></div>
+      <div id="kMsg" class="small muted" style="margin-top:8px"></div>
+    </div>
+    <div id="cardsDyn"></div>
+  </div>
+
+  <div id="g-adj" hidden>
+    <div id="adjDyn"></div>
+    <div class="card">
+      <h2>Agregar gasto compartido o transferencia</h2>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f">Tipo<select id="aKind" data-act="akind"><option value="other">Gasto compartido</option><option value="ari100">Gasto 100% de Ari</option><option value="transfer">Transferencia de saldo</option></select></label>
+        <label class="f">Fecha<input type="date" id="aDate"></label>
+        <label class="f grow">Descripción<input id="aDesc" placeholder="Ej: Lavarropas, piano, súper…"></label>
+      </div>
+      <div class="row">
+        <label class="f">Monto<input id="aAmt" type="number" step="any" style="width:140px"></label>
+        <label class="f">Moneda<select id="aCur"></select></label>
+        <label class="f"><span id="aByL">Quién pagó</span><select id="aBy"><option value="me">Yo</option><option value="ari">Ari</option></select></label>
+        <label class="f" id="aPctL">Mi parte %<input id="aPct" type="number" min="0" max="100" value="50" style="width:80px"></label>
+        <button class="btn" data-act="addadj">Agregar</button>
+      </div>
+      <p class="muted small" style="margin:10px 0 0">Si pagaste vos, Ari te debe su parte; si pagó Ari, vos le debés la tuya. Con “Gasto 100% de Ari” ella te debe el total.</p>
+      <div id="aMsg" class="small muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROYECCION ================= -->
+<section id="t-proy" hidden>
+  <div class="card">
+    <h2>Presupuesto mensual por categoría</h2>
+    <div class="row" style="margin-bottom:10px">
+      <label class="f">Mes base del presupuesto<input type="month" id="projStart" data-act="projStart"></label>
+      <label class="f">Inflación mensual estimada (%)<input type="number" step="0.1" id="infl" data-act="infl" style="width:130px"></label>
+    </div>
+    <div id="budInputs" class="grid g2"></div>
+    <p class="muted small">Los montos van en tu moneda base. A partir del mes base, cada mes crece según la inflación estimada.</p>
+  </div>
+  <div id="proyDyn"></div>
+  <div class="card">
+    <h2>Objetivos de ahorro</h2>
+    <div class="row" style="margin-bottom:12px">
+      <label class="f grow">Objetivo<input id="gName" placeholder="Ej: Viaje, notebook, fondo de emergencia"></label>
+      <label class="f">Monto<input id="gTarget" type="number" style="width:120px"></label>
+      <label class="f">Moneda<select id="gCur"></select></label>
+      <label class="f">Ahorrado<input id="gSaved" type="number" style="width:110px" value="0"></label>
+      <label class="f">Fecha límite<input id="gDate" type="month"></label>
+      <button class="btn" data-act="addgoal">Agregar</button>
+    </div>
+    <div id="goalsDyn"></div>
+  </div>
+</section>
+
+<!-- ================= INGRESOS ================= -->
+<section id="t-ing" hidden>
+  <div class="seg" style="margin-bottom:12px"><button data-act="ingview" data-v="gen" class="on">Ingresos</button><button data-act="ingview" data-v="com">Comisiones inmobiliarias</button></div>
+  <div class="card">
+    <h2>Moneda y tipo de cambio</h2>
+    <div class="row">
+      <label class="f">Moneda base (en la que ves todo)<select id="base" data-act="base"></select></label>
+      <div id="rateInputs" class="row"></div>
+    </div>
+    <p class="muted small">Los cambios son valores de ejemplo: actualizalos con el que uses vos (oficial, MEP, blue…). Expresados en ARS por 1 unidad.</p>
+  </div>
+  <div id="ing-gen">
+  <div class="card">
+    <h2>Cargar ingreso</h2>
+    <div class="row">
+      <label class="f">Mes<input type="month" id="iMonth"></label>
+      <label class="f grow">Fuente<input id="iSrc" placeholder="Sueldo, freelance, alquiler…"></label>
+      <label class="f">Monto<input id="iAmt" type="number" style="width:120px"></label>
+      <label class="f">Moneda<select id="iCur"></select></label>
+      <label class="f">Cambio propio (opcional)<input id="iRate" type="number" style="width:130px" placeholder="ARS por 1"></label>
+      <label class="f">Repetir N meses más<input id="iRep" type="number" min="0" max="36" value="0" style="width:90px"></label>
+      <button class="btn" data-act="addinc">Agregar</button>
+    </div>
+  </div>
+  <div id="ingDyn"></div>
+  <div class="card row" style="justify-content:space-between">
+    <span class="muted small" id="bkNote">Tus datos se guardan en este navegador. Podés hacer un respaldo.</span>
+    <span class="row">
+      <button class="btn ghost" data-act="export" id="expBtn">Exportar respaldo</button>
+      <label class="btn ghost" style="cursor:pointer">Importar<input type="file" accept="application/json" data-act="import" hidden></label>
+    </span>
+  </div>
+  </div>
+
+  <div id="ing-com" hidden>
+    <div class="card">
+      <h2>Nueva comisión</h2>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f">Fecha<input type="date" id="cDate"></label>
+        <label class="f">Operación<select id="cOp"><option>Venta</option><option>Alquiler</option><option>Otra</option></select></label>
+        <label class="f">Jurisdicción<input id="cJur" list="dlJur" placeholder="CABA, PROV…" style="width:140px"></label>
+        <label class="f">Agente<input id="cAgent" list="dlAgents" placeholder="Nombre del agente" style="width:180px"></label>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f grow">Domicilio<input id="cAddr" placeholder="Ej: Av Belgrano 1836"></label>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="f">Comisión en USD<input id="cUsd" type="number" step="any" style="width:130px"></label>
+        <label class="f">Comisión en pesos<input id="cArs" type="number" step="any" style="width:140px"></label>
+        <label class="f">Cambio propio (opcional)<input id="cRate" type="number" step="any" style="width:140px" placeholder="ARS por 1 USD"></label>
+      </div>
+      <details style="margin-bottom:10px"><summary class="small muted" style="cursor:pointer">Calcular los USD como base × %</summary>
+        <div class="row" style="margin-top:6px"><label class="f">Base<input id="cBase" type="number" step="any" data-act="calc" style="width:130px"></label><label class="f">%<input id="cPct" type="number" step="any" value="4" data-act="calc" style="width:80px"></label></div>
+      </details>
+      <div class="row"><label class="f grow">Comprobante (imagen)<input id="cFile" type="file" accept="image/*"></label><button class="btn" id="cAdd" data-act="addcom">Agregar comisión</button></div>
+      <div id="cMsg" class="small muted" style="margin-top:8px"></div>
+    </div>
+    <div id="comDyn"></div>
+  </div>
+</section>
+</main>
+<div id="toast" hidden role="status"></div>
+<div id="lb" hidden><img id="lbImg" alt="Comprobante"></div>
+
+<script>
+const CATS=['Supermercado','Comida/Restaurantes','Transporte','Vivienda/Servicios','Salud','Ocio','Compras','Educación','Viajes','Suscripciones','Otros'];
+const PAL=['#2f6fed','#f2994a','#27ae60','#eb5757','#9b51e0','#56ccf2','#f2c94c','#bb6bd9','#219653','#e0609a','#8a95a5'];
+const PAYS=['Efectivo','Débito','Crédito','Transferencia','Mercado Pago','Otro'];
+const CURS=['ARS','USD','EUR','BRL'];
+const KEY='finanzas_v1';
+const $=s=>document.querySelector(s);
+const p2=n=>String(n).padStart(2,'0');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dstr=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+const today=()=>dstr(new Date());
+const mk=s=>String(s).slice(0,7);
+function dateFromOffset(o){const d=new Date();d.setDate(d.getDate()+o);return dstr(d)}
+function mdiff(a,b){const[ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);return (by-ay)*12+(bm-am)}
+function addM(k,n){const[y,m]=k.split('-').map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+'-'+p2(d.getMonth()+1)}
+function mLabel(k,long){const[y,m]=k.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('es-AR',{month:long?'long':'short',year:'2-digit'})}
+
+function defaults(){return{base:'ARS',rates:{ARS:1,USD:1500,EUR:1700,BRL:280},expenses:[],incomes:[],budgets:{},infl:2,projStart:mk(today()),goals:[],commissions:[],cards:[],adj:[]}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);const d=defaults();return Object.assign(d,o,{rates:Object.assign(d.rates,o.rates||{})})}}catch(e){}return defaults()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+let sel=mk(today());
+let mode='mine';
+let sampleFn=null,dl=null,basicNoted=false;
+let dbCol=null,assetsApi=null,COMM=S.commissions||[],ingView='gen',CARDS=S.cards||[],ADJ=S.adj||[],gView='main';
+
+/* ---------- moneda ---------- */
+function toBase(a,cur,custom){const ars=a*(custom>0?custom:(S.rates[cur]||1));return ars/(S.rates[S.base]||1)}
+function eBase(e,m){if(e.paidBy==='ari'&&m!=='mine')return 0;const a=(m==='mine'&&e.shared)?e.amount*(e.sharePct/100):e.amount;return toBase(a,e.currency)}
+function fmt(n,cur){cur=cur||S.base;try{return new Intl.NumberFormat('es-AR',{style:'currency',currency:cur,maximumFractionDigits:cur==='ARS'?0:2}).format(n)}catch(e){return cur+' '+Math.round(n)}}
+function sum(a,f){return a.reduce((s,x)=>s+f(x),0)}
+function group(list,kf,vf){const m={};list.forEach(x=>{const k=kf(x);m[k]=(m[k]||0)+vf(x)});return Object.entries(m).map(([label,value])=>({label,value})).filter(i=>i.value>0).sort((a,b)=>b.value-a.value)}
+function catColor(c){const i=CATS.indexOf(c);return PAL[i>=0?i:PAL.length-1]}
+function opts(list,cur){return list.map(v=>`<option${v===cur?' selected':''}>${esc(v)}</option>`).join('')}
+
+function pie(items){
+  const tot=sum(items,i=>i.value);
+  if(!tot)return '<p class="empty">Sin datos este mes.</p>';
+  const C=2*Math.PI*8;let cum=0;
+  const sl=items.map(i=>{const len=i.value/tot*C;const s=`<circle r="8" cx="16" cy="16" fill="none" stroke="${i.color}" stroke-width="16" stroke-dasharray="${len.toFixed(3)} ${C.toFixed(3)}" stroke-dashoffset="${(-cum).toFixed(3)}" transform="rotate(-90 16 16)"/>`;cum+=len;return s}).join('');
+  const lg=items.map(i=>`<li><span class="dot" style="background:${i.color}"></span><span class="lg-l">${esc(i.label)}</span><span class="lg-v">${fmt(i.value)} · ${Math.round(i.value/tot*100)}%</span></li>`).join('');
+  return `<div class="pie-wrap"><svg viewBox="0 0 32 32" class="pie">${sl}</svg><ul class="legend">${lg}</ul></div>`;
+}
+
+/* ---------- parser local (modo básico) ---------- */
+const KW=[
+ [/netflix|spotify|hbo|disney|youtube|prime|suscrip|icloud|chatgpt|claude/i,'Suscripciones'],
+ [/super|carrefour|coto|jumbo|verduler|carnicer|almac[eé]n|chino|supermercado/i,'Supermercado'],
+ [/restaurant|resto|cena|almuerzo|comida|pizza|sushi|caf[eé]|delivery|pedidos ?ya|rappi|helado|burger|empanada|merienda/i,'Comida/Restaurantes'],
+ [/uber|cabify|taxi|nafta|combustible|ypf|shell|axion|subte|colectivo|sube\b|peaje|estacionamiento|cochera|tren|bondi/i,'Transporte'],
+ [/alquiler|expensas|\bluz\b|\bgas\b|\bagua\b|internet|wifi|edenor|edesur|metrogas|tel[eé]fono|celular|\babl\b|impuesto|seguro|municipal/i,'Vivienda/Servicios'],
+ [/farmacia|m[eé]dic|doctor|prepaga|obra social|dentista|an[aá]lisis|remedio|psic[oó]log|kinesi/i,'Salud'],
+ [/cine|teatro|boliche|entrada|recital|show|steam|playstation|fiesta|salida|juego/i,'Ocio'],
+ [/ropa|zapatill|amazon|mercado ?libre|shopping|regalo|electro|compra/i,'Compras'],
+ [/curso|facultad|universidad|libro|colegio|escuela|udemy|idioma/i,'Educación'],
+ [/hotel|vuelo|pasaje|aerol|airbnb|viaje|excursi|despegar/i,'Viajes']
+];
+function parseNum(s){
+  if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))return parseFloat(s.replace(/\./g,'').replace(',','.'));
+  if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))return parseFloat(s.replace(/,/g,''));
+  return parseFloat(s.replace(',','.'))||0;
+}
+const a100Re=/\b(?:100\s?%\s*(?:de\s+)?ari|(?:es|son|todo|todos|enteramente|totalmente)\s+(?:de\s+)?ari|(?:me\s+)?(?:lo\s+)?debe\s+ari|ari\s+(?:me\s+)?(?:lo\s+)?debe)\b/i;
+function localParse(text){
+  const out=[];
+  text.split(/\n|;/).map(s=>s.trim()).filter(Boolean).forEach(raw=>{
+    let t=raw;
+    if(a100Re.test(raw))t=t.replace(a100Re,' ');
+    t=t.replace(/50\s?\/\s?50/,' a medias ');
+    let pct=null;const pm=t.match(/(\d{1,3})\s?%/);
+    if(pm){pct=Math.min(100,+pm[1]);t=t.replace(pm[0],' ')}
+    const nm=t.match(/\d[\d.,]*\d|\d/);
+    if(!nm)return;
+    let num=parseNum(nm[0]);
+    const after=t.slice(nm.index+nm[0].length);
+    const suf=after.match(/^\s*(k\b|mil\b|lucas?\b|palos?\b|mill[oó]n(?:es)?\b)/i);
+    let rest=t.slice(0,nm.index)+' '+after;
+    if(suf){const s=suf[1].toLowerCase();num*=/^(k|mil|luca)/.test(s)?1000:1e6;rest=t.slice(0,nm.index)+' '+after.slice(suf[0].length)}
+    let cur=S.base;
+    if(/usd|u\$s|us\$|d[oó]lar/i.test(raw))cur='USD';
+    else if(/\beur\b|€|euro/i.test(raw))cur='EUR';
+    else if(/\bbrl\b|reales/i.test(raw))cur='BRL';
+    let pay='Otro';
+    if(/efectivo|cash/i.test(raw))pay='Efectivo';
+    else if(/d[eé]bito/i.test(raw))pay='Débito';
+    else if(/cr[eé]dito|tarjeta|visa|master|amex/i.test(raw))pay='Crédito';
+    else if(/transfer/i.test(raw))pay='Transferencia';
+    else if(/mercado ?pago|\bmp\b/i.test(raw))pay='Mercado Pago';
+    let cat='Otros';for(const[r,c]of KW){if(r.test(raw)){cat=c;break}}
+    const shKw=/compartid|a medias|dividid|mitad|split|entre los dos|entre dos/i.test(raw);
+    let who='';
+    const w1=raw.match(/(?:compartid[oa]|dividid[oa]|a medias|mitad)\s+con\s+(\p{L}+)/iu);
+    if(w1)who=w1[1];
+    else if(shKw){const w2=raw.match(/\bcon ([A-ZÁÉÍÓÚÑ]\p{L}*)/u);if(w2)who=w2[1]}
+    const ariRe=/\bari\s+(?:lo\s+)?(?:pag[oó]|puso|abon[oó]|compr[oó]|gast[oó])|\b(?:pag[oó]|puso|abon[oó])\s+ari\b|gasto\s+de\s+ari\b/i;
+    const ari100=a100Re.test(raw),ariPaid=!ari100&&ariRe.test(raw);
+    if(ariPaid||ari100)who='Ari';
+    const shared=shKw||pct!==null||ariPaid||ari100;
+    let off=0;if(/anteayer|antes de ayer/i.test(raw))off=-2;else if(/\bayer\b/i.test(raw))off=-1;
+    let desc=rest.replace(new RegExp(ariRe.source,'ig'),' ').replace(/\b(efectivo|cash|d[eé]bito|cr[eé]dito|tarjeta|compartid[oa]|a medias|dividid[oa]|transferencia|mercado ?pago)\b/ig,' ').replace(/[,;]+/g,' ').replace(/\b(usd|u\$s|us\$|d[oó]lares?|euros?|pesos|ars)\b/ig,' ').replace(/\b(con|en|de|por)\s*$/i,' ').replace(/\s+/g,' ').trim();
+    desc=desc.replace(/^[,\-–\s]+|[,\-–\s]+$/g,'');
+    if(!desc)desc='Gasto';
+    desc=desc.charAt(0).toUpperCase()+desc.slice(1);
+    out.push({desc:desc.slice(0,60),amount:num,currency:cur,category:cat,payment:pay,shared,sharedWith:who,sharePct:ari100?0:(shared?(pct==null?50:pct):100),paidBy:ariPaid?'ari':'me',dayOffset:off});
+  });
+  return out;
+}
+
+/* ---------- IA (capability sample) ---------- */
+async function aiParse(text){
+  const prompt=`Sos el parser de gastos personales de un usuario argentino. Hoy es ${today()}. Interpretá el mensaje y devolvé SOLO un array JSON (sin markdown ni texto extra), un objeto por gasto, con esta forma:
+{"desc": string corta, "amount": number, "currency": "ARS"|"USD"|"EUR"|"BRL", "category": una de ${JSON.stringify(CATS)}, "payment": una de ${JSON.stringify(PAYS)} ("Otro" si no se indica), "shared": boolean, "sharedWith": string (nombre o ""), "sharePct": número 0-100 = porcentaje que paga el usuario (50 si es compartido sin más datos, 100 si no es compartido), "dayOffset": entero <= 0 (0 hoy, -1 ayer), "paidBy": "me"|"ari"}
+Entendé la jerga: "lucas" o "k" = miles, "palos" = millones. Moneda por defecto: ${S.base}. "paidBy" es quién pagó el gasto: "ari" si el mensaje dice que lo pagó o puso Ari (la pareja del usuario), si no "me". Si pagó Ari, "shared" debe ser true y "sharedWith" "Ari" (sharePct = % que le corresponde al usuario, 50 si no se aclara). Si el gasto es 100% de Ari (lo pagó el usuario pero Ari se lo debe completo, por ejemplo \"100% de Ari\", \"es de Ari\", \"me lo debe Ari\"), devolvé paidBy \"me\", shared true, sharedWith \"Ari\" y sharePct 0. Si no hay ningún monto devolvé [].
+Mensaje: """${text}"""`;
+  const r=await sampleFn.json(prompt,{modelTier:'quick',cache:false});
+  return Array.isArray(r)?r:(r&&Array.isArray(r.expenses)?r.expenses:[]);
+}
+function pick(list,v,def){const f=list.find(i=>i.toLowerCase()===String(v||'').toLowerCase());return f||def}
+function norm(x){
+  if(!x||!(+x.amount>0))return null;
+  const c=String(x.currency||'').toUpperCase();
+  const cur=CURS.includes(c)?c:S.base;
+  const ariPaid=x.paidBy==='ari';
+  const shared=ariPaid||!!x.shared;
+  let pct=shared?Number(x.sharePct):100;
+  if(!(pct>=0&&pct<=100))pct=shared?50:100;
+  return{id:uid(),date:dateFromOffset(Math.min(0,Math.round(+x.dayOffset||0))),desc:String(x.desc||'Gasto').slice(0,80),amount:+(+x.amount).toFixed(2),currency:cur,category:pick(CATS,x.category,'Otros'),payment:pick(PAYS,x.payment,'Otro'),shared,sharedWith:shared?String(x.sharedWith||(ariPaid?'Ari':'')):'',sharePct:pct,paidBy:ariPaid?'ari':'me',settled:false};
+}
+
+/* ---------- recurrencia: cuotas y mensuales ---------- */
+function extractRecur(seg){
+  let t=seg,rp=null,m;
+  if(m=t.match(/(\d{1,2})\s*cuotas?\s*(?:fijas\s*)?(?:de|x)\s*(?=[$\d])/i)){rp={kind:'cuota',n:+m[1],each:true};t=t.replace(m[0],' ')}
+  else if(m=t.match(/(?:en\s+)?(\d{1,2})\s*cuotas?(?:\s+(?:fijas|sin\s+inter[eé]s))?/i)){rp={kind:'cuota',n:+m[1],each:null};t=t.replace(m[0],' ')}
+  else if(m=t.match(/(?:todos\s+los\s+meses|cada\s+mes|mensual(?:es|mente)?)(?:\s+(?:durante|por|x)\s+(\d{1,2})\s+meses)?/i)){rp={kind:'mensual',n:m[1]?+m[1]:null};t=t.replace(m[0],' ')}
+  else if(m=t.match(/(?:durante|por|x)\s+(\d{1,2})\s+meses/i)){rp={kind:'mensual',n:+m[1]};t=t.replace(m[0],' ')}
+  return{text:t.replace(/\s+/g,' ').trim(),rp};
+}
+function resolveRp(r){
+  const mode=$('#rpMode').value;
+  const rp=r?{...r}:(mode!=='once'?{kind:mode,n:null,each:null}:null);
+  if(!rp)return null;
+  const uiN=Math.round(+$('#rpN').value)||0;
+  if(rp.n==null)rp.n=(mode===rp.kind&&uiN)?uiN:(rp.kind==='cuota'?6:12);
+  rp.n=Math.max(2,Math.min(60,rp.n));
+  if(rp.kind==='cuota'&&rp.each==null)rp.each=$('#rpAmt').value==='each';
+  rp.start=mode!=='once'?(+$('#rpStart').value||0):0;
+  return rp;
+}
+function addMonthDate(ds,k){const[y,m,d]=ds.split('-').map(Number);const last=new Date(y,m-1+k+1,0).getDate();return dstr(new Date(y,m-1+k,Math.min(d,last)))}
+function expandRp(it,rp){
+  if(!rp)return[it];
+  const rid=uid(),out=[];
+  let per=it.amount;
+  if(rp.kind==='cuota'&&!rp.each)per=+(it.amount/rp.n).toFixed(2);
+  for(let i=0;i<rp.n;i++){
+    let a=per;
+    if(rp.kind==='cuota'&&!rp.each&&i===rp.n-1)a=+(it.amount-per*(rp.n-1)).toFixed(2);
+    out.push({...it,id:uid(),date:addMonthDate(it.date,i+rp.start),amount:a,recurId:rid,recurKind:rp.kind,instNo:i+1,instTotal:rp.n,settled:false});
+  }
+  return out;
+}
+function lineOf(i,rp,ex){
+  let s='✔ '+esc(i.desc)+' — '+fmt(i.amount,i.currency)+' · '+esc(i.category)+' · '+esc(i.payment)+(i.paidBy==='ari'?' · pagó Ari':'')+(i.shared?' · compartido'+(i.sharedWith?' con '+esc(i.sharedWith):'')+(i.sharePct===0&&i.paidBy!=='ari'?' · 100% de Ari, te lo debe':' ('+i.sharePct+'% tuyo)'):'');
+  if(rp){const last=mLabel(mk(ex[ex.length-1].date));s+=rp.kind==='cuota'?' · '+rp.n+' cuotas de '+fmt(ex[0].amount,i.currency)+' hasta '+esc(last):' · todos los meses ('+rp.n+') hasta '+esc(last)}
+  return s;
+}
+function updRp(){
+  const m=$('#rpMode').value;
+  $('#rpNL').hidden=m==='once';$('#rpAL').hidden=m!=='cuota';$('#rpSL').hidden=m==='once';
+  $('#rpNT').textContent=m==='mensual'?'Meses':'Cuotas';
+}
+function renderRecur(){
+  const el=$('#recurDyn');if(!el)return;
+  const g={};S.expenses.forEach(e=>{if(e.recurId)(g[e.recurId]=g[e.recurId]||[]).push(e)});
+  const t=today();
+  const rows=Object.entries(g).map(([id,l])=>{
+    l.sort((a,b)=>a.date.localeCompare(b.date));
+    const fut=l.filter(e=>e.date>t);if(!fut.length)return '';
+    const f=l[0],isC=f.recurKind==='cuota',done=l.length-fut.length;
+    const rest=sum(fut,e=>toBase(e.amount,e.currency));
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(f.desc)}</b> <span class="tag">${isC?'Cuotas':'Mensual'}</span><div class="small muted">${done} de ${l.length} ya pasaron · próxima: ${esc(fut[0].date)}</div></div><div class="amt">${fmt(f.amount,f.currency)}<div class="small muted">Restante: ${fmt(rest)}</div></div></div><div class="exp-ctl"><button class="chip" data-act="rmrecur" data-t="Quitar las que faltan" data-id="${esc(id)}">Quitar las que faltan</button></div></div>`;
+  }).join('');
+  el.innerHTML=rows?`<div class="card"><h2>Cuotas y gastos recurrentes</h2>${rows}</div>`:'';
+}
+
+/* ---------- chat ---------- */
+function bubble(text,who){const d=document.createElement('div');d.className='b '+who;d.textContent=text;const l=$('#chatLog');l.appendChild(d);l.scrollTop=l.scrollHeight;return d}
+let busy=false;
+async function parseOne(t){
+  let it=null,bas=false;
+  if(sampleFn){try{it=(await aiParse(t)).map(norm).filter(Boolean)}catch(err){it=null}}
+  if(!it||!it.length){it=localParse(t).map(norm).filter(Boolean);bas=true}
+  return{it,bas};
+}
+async function send(){
+  if(busy)return;
+  const inp=$('#chatIn');const text=inp.value.trim();if(!text)return;
+  inp.value='';bubble(text,'me');
+  const wait=bubble('Interpretando…','bot');busy=true;$('#sendBtn').disabled=true;
+  let basic=false,groups=[];
+  try{
+    const segs=text.split(/\n|;/).map(x=>x.trim()).filter(Boolean).map(extractRecur);
+    const anyRp=$('#rpMode').value!=='once'||segs.some(x=>x.rp);
+    if(!anyRp){const r=await parseOne(text);basic=r.bas;groups=[{items:r.it,rp:null}]}
+    else for(const x of segs){if(!x.text)continue;const r=await parseOne(x.text);basic=basic||r.bas;groups.push({items:r.it,rp:resolveRp(x.rp)})}
+  }catch(err){groups=[]}
+  busy=false;$('#sendBtn').disabled=false;
+  const base=groups.flatMap(g=>g.items);
+  if(!base.length){wait.textContent='No encontré ningún monto. Probá con algo como: "Uber 3500 con tarjeta".';return}
+  const lines=[];
+  groups.forEach(g=>g.items.forEach(it=>{const ex=expandRp(it,g.rp);ex.forEach(x=>S.expenses.push(x));lines.push(lineOf(it,g.rp,ex))}));
+  sel=mk(base[0].date);$('#month').value=sel;
+  save();
+  wait.innerHTML=lines.join('<br>')+(basic&&!basicNoted?'<div class="small muted" style="margin-top:4px">Interpretado en modo básico (sin IA). Podés corregir cualquier campo abajo.</div>':'');
+  if(basic)basicNoted=true;
+  $('#rpMode').value='once';updRp();
+  renderDyn();
+}
+
+/* ---------- render: gastos ---------- */
+function renderGastos(){
+  const ex=S.expenses.filter(e=>mk(e.date)===sel).sort((a,b)=>b.date.localeCompare(a.date));
+  const tot=sum(ex,e=>eBase(e,mode));
+  const shared=ex.filter(e=>e.shared);
+  const owedMe=sum(shared.filter(e=>!e.settled&&e.paidBy!=='ari'),e=>toBase(e.amount*(1-e.sharePct/100),e.currency));
+  const iOwe=sum(shared.filter(e=>!e.settled&&e.paidBy==='ari'),e=>toBase(e.amount*e.sharePct/100,e.currency));
+  const net=owedMe-iOwe;
+  const byCat=group(ex,e=>e.category,e=>eBase(e,mode)).map(i=>({...i,color:catColor(i.label)}));
+  const byPay=group(ex,e=>e.payment,e=>eBase(e,mode)).map((i,k)=>({...i,color:PAL[k%PAL.length]}));
+  const list=ex.map(e=>{
+    const conv=e.currency!==S.base?` <span class="muted small">≈ ${fmt(toBase(e.amount,e.currency))}</span>`:'';
+    const mine=e.shared?`<div class="small muted">Tu parte: ${fmt(e.amount*e.sharePct/100,e.currency)}</div>`:'';
+    const sh=e.shared?`<input type="number" min="0" max="100" value="${e.sharePct}" data-act="pct" data-id="${e.id}" style="width:62px" title="% que pagás vos"><span class="small muted">% tuyo</span><input type="text" value="${esc(e.sharedWith)}" placeholder="con quién" data-act="with" data-id="${e.id}" style="width:100px"><label class="chk"><input type="checkbox" data-act="settled" data-id="${e.id}"${e.settled?' checked':''}> Saldado</label>`:'';
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(e.desc)}</b><div class="small muted">${esc(e.date)}${e.shared?' · <span class="tag">compartido</span>':''}${e.paidBy==='ari'?' · <span class="tag">pagó Ari</span>':''}${e.recurId?' · <span class="tag">'+(e.recurKind==='cuota'?'Cuota ':'Mensual ')+e.instNo+'/'+e.instTotal+'</span>':''}${e.shared&&e.sharePct===0&&e.paidBy!=='ari'?' · <span class="tag">100% Ari</span>':''}</div></div><div class="amt">${fmt(e.amount,e.currency)}${conv}${mine}</div></div>
+    <div class="exp-ctl"><select data-act="cat" data-id="${e.id}">${opts(CATS,e.category)}</select><select data-act="pay" data-id="${e.id}">${opts(PAYS,e.payment)}</select><select data-act="paidby" data-id="${e.id}"><option value="me"${e.paidBy==='ari'?'':' selected'}>Pagué yo</option><option value="ari"${e.paidBy==='ari'?' selected':''}>Pagó Ari</option></select><label class="chk"><input type="checkbox" data-act="shared" data-id="${e.id}"${e.shared?' checked':''}> Compartido</label>${sh}<button class="x" data-act="del" data-id="${e.id}" title="Borrar">✕</button></div></div>`;
+  }).join('');
+  $('#gastosDyn').innerHTML=`
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Resumen de ${esc(mLabel(sel,true))}</h2>
+      <div class="seg"><button data-act="mode" data-mode="mine" class="${mode==='mine'?'on':''}">Mi parte</button><button data-act="mode" data-mode="total" class="${mode==='total'?'on':''}">Total pagado</button></div></div>
+    <div class="grid g3">
+      <div class="stat"><div class="l">${mode==='mine'?'Gastado (mi parte)':'Gastado (total)'}</div><div class="v">${fmt(tot)}</div></div>
+      <div class="stat"><div class="l">Gastos cargados</div><div class="v">${ex.length}</div></div>
+      <div class="stat"><div class="l">Compartidos (${shared.length}) · saldo pendiente</div><div class="v ${net>0.005?'good':net<-0.005?'bad':''}">${net>0.005?'Te deben '+fmt(net):net<-0.005?'Debés '+fmt(-net):'A mano'}</div></div>
+    </div>
+  </div>
+  <div class="card"><div class="pies"><div><h3 style="margin-top:0">Por categoría</h3>${pie(byCat)}</div><div><h3 style="margin-top:0">Por medio de pago</h3>${pie(byPay)}</div></div></div>
+  <div class="card"><h2>Gastos del mes</h2>${list||'<p class="empty">Todavía no cargaste gastos este mes. Escribilos arriba 👆</p>'}</div>`;
+}
+
+/* ---------- render: proyeccion ---------- */
+function bFor(c,key){const k=Math.max(0,mdiff(S.projStart,key));return (+S.budgets[c]||0)*Math.pow(1+(+S.infl||0)/100,k)}
+function bTot(key){return sum(CATS,c=>bFor(c,key))}
+function realMonth(key){return sum(S.expenses.filter(e=>mk(e.date)===key),e=>eBase(e,'mine'))}
+function renderProyDyn(){
+  const exs=S.expenses.filter(e=>mk(e.date)===sel);
+  const real={};exs.forEach(e=>{real[e.category]=(real[e.category]||0)+eBase(e,'mine')});
+  const rows=CATS.filter(c=>bFor(c,sel)>0||real[c]>0).map(c=>{
+    const b=bFor(c,sel),r=real[c]||0,p=b>0?Math.min(100,r/b*100):(r>0?100:0),over=r>b&&b>=0;
+    return `<div style="margin:10px 0"><div class="row" style="justify-content:space-between"><span>${esc(c)}</span><span class="small ${r>b?'bad':'muted'}">${fmt(r)} / ${fmt(b)}</span></div><div class="bar ${over&&r>b?'over':''}"><i style="width:${p.toFixed(0)}%"></i></div></div>`;
+  }).join('');
+  const tb=bTot(sel),tr=sum(exs,e=>eBase(e,'mine'));
+  const months=Array.from({length:12},(_,i)=>addM(S.projStart,i));
+  const nowK=mk(today());
+  const trs=months.map(k=>{const p=bTot(k),past=k<=nowK,r=realMonth(k),d=p-r;
+    return `<tr><td>${esc(mLabel(k))}</td><td>${fmt(p)}</td><td>${past?fmt(r):(r>0?'<span class="muted">'+fmt(r)+'*</span>':'—')}</td><td class="${past?(d>=0?'good':'bad'):'muted'}">${past?(d>=0?'+':'')+fmt(d):'—'}</td></tr>`}).join('');
+  const annual=sum(months,k=>bTot(k));
+  const base12=budTotal()*12;
+  $('#proyDyn').innerHTML=`
+  <div class="card"><h2>Proyección</h2>
+    <div class="grid g3">
+      <div class="stat"><div class="l">Presupuesto mensual base</div><div class="v">${fmt(budTotal())}</div></div>
+      <div class="stat"><div class="l">Anual sin inflación</div><div class="v">${fmt(base12)}</div></div>
+      <div class="stat"><div class="l">Anual con inflación</div><div class="v">${fmt(annual)}</div></div>
+    </div></div>
+  <div class="card"><h2>${esc(mLabel(sel,true))}: presupuesto vs. real</h2>
+    ${rows||'<p class="empty">Cargá presupuestos arriba o gastos para ver la comparación.</p>'}
+    <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:6px"><b>Total</b><b class="${tr>tb&&tb>0?'bad':'good'}">${fmt(tr)} / ${fmt(tb)}</b></div></div>
+  <div class="card"><h2>12 meses: proyectado vs. real</h2><div class="scroll"><table><tr><th>Mes</th><th>Proyectado</th><th>Real</th><th>Diferencia</th></tr>${trs}</table></div>
+    <p class="muted small">Diferencia positiva = gastaste menos de lo proyectado. "Real" usa tu parte de los gastos compartidos. * Ya cargado para meses futuros (cuotas y gastos recurrentes).</p></div>`;
+  renderGoals();
+}
+function budTotal(){return sum(CATS,c=>+S.budgets[c]||0)}
+function renderGoals(){
+  const nowK=mk(today());
+  const ing=incMonth(sel);
+  const saveM=ing-realMonth(sel);
+  const html=S.goals.map(g=>{
+    const tg=toBase(g.target,g.cur),sv=toBase(g.saved,g.cur),pct=tg>0?Math.min(100,sv/tg*100):0;
+    const left=g.deadline?mdiff(nowK,g.deadline):null;
+    let need='';
+    if(g.deadline){
+      if(sv>=tg)need='¡Objetivo cumplido! 🎉';
+      else if(left<=0)need='Fecha vencida · faltan '+fmt(tg-sv);
+      else need='Te faltan '+fmt(tg-sv)+' · ahorrando '+fmt((tg-sv)/left)+' por mes llegás en '+left+' mes'+(left>1?'es':'');
+    }else need=sv>=tg?'¡Objetivo cumplido! 🎉':'Te faltan '+fmt(tg-sv);
+    return `<div style="margin:12px 0;border-top:1px solid var(--line);padding-top:10px"><div class="row" style="justify-content:space-between"><b>${esc(g.name)}</b><span class="row"><span class="small muted">${fmt(g.target,g.cur)}${g.deadline?' · '+esc(mLabel(g.deadline)):''}</span><button class="x" data-act="delgoal" data-id="${g.id}">✕</button></span></div>
+    <div class="bar" style="margin:6px 0"><i style="width:${pct.toFixed(0)}%"></i></div>
+    <div class="row" style="justify-content:space-between"><span class="small muted">${need}</span><label class="chk small">Ahorrado <input type="number" value="${g.saved}" data-act="goalsaved" data-id="${g.id}" style="width:100px;padding:4px 6px"> ${esc(g.cur)}</label></div></div>`;
+  }).join('');
+  $('#goalsDyn').innerHTML=`<div class="stat" style="margin-bottom:6px"><div class="l">Ahorro posible en ${esc(mLabel(sel,true))} (ingresos − gastos)</div><div class="v ${saveM>=0?'good':'bad'}">${fmt(saveM)}</div></div>`+(html||'<p class="empty">Todavía no tenés objetivos. Sumá el primero arriba.</p>');
+}
+
+/* ---------- render: ingresos ---------- */
+function renderIngDyn(){
+  const inc=S.incomes.filter(i=>i.month===sel);
+  const tInc=incMonth(sel),tCom=sum(COMM.filter(c=>c.month===sel),commBase);
+  const tExp=realMonth(sel);
+  const list=inc.map(i=>{
+    const conv=i.currency!==S.base?`<div class="small muted">≈ ${fmt(toBase(i.amount,i.currency,i.rate))}${i.rate>0?' · cambio '+i.rate:''}</div>`:'';
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(i.source)}</b><div class="small muted">${esc(mLabel(i.month,true))}</div></div><div class="amt">${fmt(i.amount,i.currency)}${conv}</div><button class="x" data-act="delinc" data-id="${i.id}">✕</button></div></div>`;
+  }).join('');
+  const keys=Array.from({length:6},(_,i)=>addM(sel,i-5));
+  const data=keys.map(k=>({k,i:incMonth(k),e:realMonth(k)}));
+  const mx=Math.max(1,...data.map(d=>Math.max(d.i,d.e)));
+  const W=320,H=130,gw=W/6;
+  const bars=data.map((d,n)=>{const h1=d.i/mx*(H-30),h2=d.e/mx*(H-30),x=n*gw+8;
+    return `<rect x="${x}" y="${H-18-h1}" width="18" height="${h1}" rx="3" fill="var(--good)"/><rect x="${x+20}" y="${H-18-h2}" width="18" height="${h2}" rx="3" fill="var(--bad)"/><text x="${x+19}" y="${H-5}" text-anchor="middle">${esc(mLabel(d.k))}</text>`}).join('');
+  $('#ingDyn').innerHTML=`
+  <div class="card"><h2>Balance de ${esc(mLabel(sel,true))}</h2>
+    <div class="grid g3">
+      <div class="stat"><div class="l">Ingresos</div><div class="v good">${fmt(tInc)}</div>${tCom>0?`<div class="small muted">incluye comisiones: ${fmt(tCom)}</div>`:''}</div>
+      <div class="stat"><div class="l">Gastos (mi parte)</div><div class="v bad">${fmt(tExp)}</div></div>
+      <div class="stat"><div class="l">Balance</div><div class="v ${tInc-tExp>=0?'good':'bad'}">${fmt(tInc-tExp)}</div></div>
+    </div>
+    <h3>Últimos 6 meses</h3>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:520px">${bars}</svg>
+    <div class="small muted"><span class="dot" style="background:var(--good);display:inline-block"></span> Ingresos &nbsp; <span class="dot" style="background:var(--bad);display:inline-block"></span> Gastos</div>
+  </div>
+  <div class="card"><h2>Ingresos del mes</h2>${list||'<p class="empty">Sin ingresos cargados este mes.</p>'}</div>`;
+}
+
+/* ---------- render: partes estáticas (inputs) ---------- */
+function renderStatic(){
+  $('#month').value=sel;
+  if(!$('#cDate').value)$('#cDate').value=today();
+  $('#projStart').value=S.projStart;
+  $('#infl').value=S.infl;
+  $('#base').innerHTML=opts(CURS,S.base);
+  $('#gCur').innerHTML=opts(CURS,S.base);
+  $('#iCur').innerHTML=opts(CURS,S.base);
+  $('#iMonth').value=sel;
+  $('#gDate').value=addM(mk(today()),6);
+  $('#aCur').innerHTML=opts(CURS,S.base);
+  if(!$('#aDate').value)$('#aDate').value=today();
+  $('#rateInputs').innerHTML=CURS.filter(c=>c!=='ARS').map(c=>`<label class="f">1 ${c} en ARS<input type="number" step="any" value="${S.rates[c]}" data-act="rate" data-cur="${c}" style="width:110px"></label>`).join('');
+  $('#budInputs').innerHTML=CATS.map(c=>`<label class="f">${esc(c)} (${S.base})<input type="number" min="0" value="${S.budgets[c]||''}" placeholder="0" data-act="budget" data-cat="${esc(c)}"></label>`).join('');
+}
+function renderDyn(){renderGastos();renderProyDyn();renderIngDyn();renderCom();renderCards();renderAdj();renderRecur()}
+function commit(full){save();if(full)renderStatic();renderDyn()}
+
+/* ---------- comisiones inmobiliarias ---------- */
+const commBase=c=>toBase(+c.usd||0,'USD',+c.rate>0?+c.rate:0)+toBase(+c.ars||0,'ARS');
+function incMonth(key){return sum(S.incomes.filter(i=>i.month===key),i=>toBase(i.amount,i.currency,i.rate))+sum(COMM.filter(c=>c.month===key),commBase)}
+function cmsg(t,bad){const m=$('#cMsg');m.textContent=t||'';m.className='small '+(bad?'bad':'muted');m.style.marginTop='8px'}
+async function commPut(c){
+  if(dbCol){const{id,...rest}=c;await dbCol.doc('com_'+id).set(rest)}
+  else{const i=S.commissions.findIndex(x=>x.id===c.id);if(i>=0)S.commissions[i]=c;else S.commissions.push(c);COMM=S.commissions;save();renderDyn()}
+}
+async function commDel(id){
+  const c=COMM.find(x=>x.id===id);
+  if(c&&c.receipt&&assetsApi){try{await assetsApi.delete(c.receipt)}catch(e){}}
+  if(dbCol)await dbCol.doc('com_'+id).delete();
+  else{S.commissions=S.commissions.filter(x=>x.id!==id);COMM=S.commissions;save();renderDyn()}
+}
+async function shrink(f){
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type))return f;
+  try{
+    const bmp=await createImageBitmap(f);const k=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*k);cv.height=Math.round(bmp.height*k);
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.82));
+    return blob&&blob.size<f.size?blob:f;
+  }catch(e){return f}
+}
+async function addCommission(){
+  const usd=+$('#cUsd').value||0,ars=+$('#cArs').value||0;
+  if(!(usd>0||ars>0)){cmsg('Poné el monto en dólares, en pesos, o en ambos.',true);return}
+  const date=$('#cDate').value||today(),btn=$('#cAdd');
+  btn.disabled=true;cmsg('Guardando…');
+  let receipt='',warn='';
+  const f=$('#cFile').files[0];
+  if(f){
+    if(!assetsApi)warn='No se pueden adjuntar comprobantes en esta vista: la comisión se guardó sin él.';
+    else{try{const r=await assetsApi.upload(await shrink(f));receipt=r.id}catch(e){warn='No se pudo subir el comprobante ('+((e&&e.code)||'error')+'). La comisión se guardó sin él; podés adjuntarlo después.'}}
+  }
+  const c={id:uid(),date,month:mk(date),operation:$('#cOp').value,jurisdiction:$('#cJur').value.trim(),address:$('#cAddr').value.trim(),agent:$('#cAgent').value.trim(),usd,ars,rate:+$('#cRate').value||0,receipt,createdAt:Date.now()};
+  try{await commPut(c)}catch(e){cmsg('No se pudo guardar ('+((e&&e.code)||'error')+').',true);btn.disabled=false;return}
+  ['cAddr','cUsd','cArs','cBase'].forEach(i=>{$('#'+i).value=''});$('#cFile').value='';
+  sel=c.month;$('#month').value=sel;$('#iMonth').value=sel;
+  btn.disabled=false;cmsg(warn||'Comisión guardada ✔',!!warn);
+  renderDyn();
+}
+async function attachTo(id,f){
+  if(!f||!assetsApi)return;
+  const c=COMM.find(x=>x.id===id);if(!c)return;
+  cmsg('Subiendo comprobante…');
+  try{
+    const r=await assetsApi.upload(await shrink(f));const old=c.receipt;
+    await commPut({...c,receipt:r.id});
+    if(old){try{await assetsApi.delete(old)}catch(e){}}
+    cmsg('Comprobante adjuntado ✔');
+  }catch(e){cmsg('No se pudo subir el comprobante ('+((e&&e.code)||'error')+').',true)}
+}
+function renderCom(){
+  const list=COMM.filter(c=>c.month===sel).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0));
+  const tUsd=sum(list,c=>+c.usd||0),tArs=sum(list,c=>+c.ars||0),tBase=sum(list,commBase);
+  const ag={};list.forEach(c=>{const k=c.agent||'(sin agente)';const a=ag[k]||(ag[k]={n:0,usd:0,ars:0});a.n++;a.usd+=+c.usd||0;a.ars+=+c.ars||0});
+  const arows=Object.entries(ag).sort((a,b)=>b[1].usd-a[1].usd).map(([k,a])=>`<tr><td>${esc(k)}</td><td>${a.n}</td><td>${fmt(a.usd,'USD')}</td><td>${fmt(a.ars,'ARS')}</td></tr>`).join('');
+  const allAg=[...new Set(COMM.map(c=>c.agent).filter(Boolean))].sort();
+  const allJur=[...new Set(['CABA','Provincia de Buenos Aires',...COMM.map(c=>c.jurisdiction).filter(Boolean)])];
+  const rows=list.map(c=>{
+    const rec=c.receipt
+      ?`<button class="thumb" data-act="viewrec" data-rid="${esc(c.receipt)}" title="Ver comprobante"><img src="${esc(recSrc(c.receipt))}" alt="Comprobante"></button>${assetsApi?`<button class="chip" data-act="rmrec" data-t="Quitar" data-id="${c.id}">Quitar</button>`:''}`
+      :(assetsApi?`<label class="chip" style="cursor:pointer">📎 Adjuntar comprobante<input type="file" accept="image/*" data-act="attach" data-id="${c.id}" hidden></label>`:'<span class="small muted">sin comprobante</span>');
+    const amt=(+c.usd?fmt(+c.usd,'USD'):'')+(+c.usd&&+c.ars?'<br>':'')+(+c.ars?fmt(+c.ars,'ARS'):'')+(+c.usd&&c.rate>0?`<div class="small muted">cambio ${esc(c.rate)}</div>`:'');
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(c.agent||'sin agente')}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${c.jurisdiction?`<span class="tag">${esc(c.jurisdiction)}</span>`:''}</div></div><div class="amt">${amt}</div></div>
+    <div class="exp-ctl">${rec}<span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="comusd" data-id="${c.id}" style="width:90px"><span class="small muted">$</span><input type="number" step="any" value="${+c.ars||''}" data-act="comars" data-id="${c.id}" style="width:105px"><button class="x" data-act="delcom" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div></div>`;
+  }).join('');
+  $('#comDyn').innerHTML=`
+  <datalist id="dlAgents">${allAg.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
+  <datalist id="dlJur">${allJur.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
+  <div class="card"><h2>Comisiones de ${esc(mLabel(sel,true))}</h2>
+    <div class="grid g3">
+      <div class="stat"><div class="l">Operaciones</div><div class="v">${list.length}</div></div>
+      <div class="stat"><div class="l">Total en USD</div><div class="v good">${fmt(tUsd,'USD')}</div></div>
+      <div class="stat"><div class="l">Total en pesos</div><div class="v good">${fmt(tArs,'ARS')}</div></div>
+    </div>
+    <p class="muted small" style="margin:10px 0 0">Equivalente total en ${esc(S.base)}: <b>${fmt(tBase)}</b>. Se suma a tus ingresos del mes.</p>
+  </div>
+  ${arows?`<div class="card"><h2>Por agente</h2><div class="scroll"><table><tr><th>Agente</th><th>Ops</th><th>USD</th><th>Pesos</th></tr>${arows}</table></div></div>`:''}
+  <div class="card"><h2>Operaciones del mes</h2>${rows||'<p class="empty">Todavía no cargaste comisiones este mes.</p>'}</div>`;
+}
+function applyIngView(){
+  $('#ing-gen').hidden=ingView!=='gen';$('#ing-com').hidden=ingView!=='com';
+  document.querySelectorAll('[data-act="ingview"]').forEach(b=>b.classList.toggle('on',b.dataset.v===ingView));
+}
+const armed={};
+function twoTap(b,key,fn){
+  if(armed[key]){clearTimeout(armed[key]);delete armed[key];fn();return}
+  b.textContent='¿Seguro?';b.classList.add('bad');
+  armed[key]=setTimeout(()=>{delete armed[key];b.textContent=b.dataset.t||'✕';b.classList.remove('bad')},3000);
+}
+async function setupDb(db,uid0){
+  const col=db.collection('data/users/'+uid0);
+  const loc=(S.commissions||[]).slice();
+  try{
+    for(const c of loc){const{id,...rest}=c;await col.doc('com_'+id).set(rest)}
+    const lc=(S.cards||[]).slice();
+    for(const c of lc){const{id,...rest}=c;await col.doc('card_'+id).set(rest)}
+    const la=(S.adj||[]).slice();
+    for(const c of la){const{id,...rest}=c;await col.doc('adj_'+id).set(rest)}
+    if(loc.length||lc.length||la.length){S.commissions=[];S.cards=[];S.adj=[];save()}
+  }catch(e){return}
+  dbCol=col;
+  col.onSnapshot(snap=>{
+    COMM=snap.docs.filter(d=>d.id.startsWith('com_')).map(d=>Object.assign({},d.data(),{id:d.id.slice(4)}));
+    CARDS=snap.docs.filter(d=>d.id.startsWith('card_')).map(d=>Object.assign({},d.data(),{id:d.id.slice(5)}));
+    ADJ=snap.docs.filter(d=>d.id.startsWith('adj_')).map(d=>Object.assign({},d.data(),{id:d.id.slice(4)}));
+    renderDyn();
+  },()=>{dbCol=null;COMM=S.commissions;CARDS=S.cards;ADJ=S.adj;renderDyn()});
+}
+
+/* ---------- tarjetas de crédito ---------- */
+let newShares=[];
+const cDue=c=>c.due||c.close||'';
+const cTotal=c=>(+c.sub||0)-(+c.tax||0);
+const cOthers=c=>sum(c.shares||[],x=>+x.amount||0);
+const cMine=c=>cTotal(c)-cOthers(c);
+const cOwed=c=>sum((c.shares||[]).filter(x=>!x.paid),x=>+x.amount||0);
+const fmt2=(n,cur)=>{cur=cur||S.base;try{return new Intl.NumberFormat('es-AR',{style:'currency',currency:cur,minimumFractionDigits:2,maximumFractionDigits:2}).format(n)}catch(e){return cur+' '+(+n).toFixed(2)}};
+const A=v=>fmt2(v,'ARS');
+function daysTo(d){return Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5)}
+function dayTxt(d){return d<0?'venció hace '+(-d)+(d<-1?' días':' día'):d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días'}
+function kmsg(t,bad){const m=$('#kMsg');if(!m)return;m.textContent=t||'';m.className='small '+(bad?'bad':'muted')}
+async function cardPut(c){
+  if(dbCol){const{id,...rest}=c;await dbCol.doc('card_'+id).set(rest)}
+  else{const i=S.cards.findIndex(x=>x.id===c.id);if(i>=0)S.cards[i]=c;else S.cards.push(c);CARDS=S.cards;save();renderDyn()}
+}
+async function cardDel(id){
+  if(dbCol)await dbCol.doc('card_'+id).delete();
+  else{S.cards=S.cards.filter(x=>x.id!==id);CARDS=S.cards;save();renderDyn()}
+}
+function cardUpd(id,patch){const c=CARDS.find(x=>x.id===id);if(!c)return;return cardPut({...c,...patch}).catch(()=>kmsg('No se pudo guardar el cambio.',true))}
+async function importCards(list){
+  let n=0;
+  kmsg('Importando…');
+  for(const c of list){if(!c||!c.id)continue;try{await cardPut(c);n++}catch(e){kmsg('Se importaron '+n+' resúmenes y después hubo un error ('+((e&&e.code)||'error')+').',true);return}}
+  kmsg('Se importaron '+n+' resúmenes ✔');
+}
+function updKTotal(){const t=(+$('#kSub').value||0)-(+$('#kTax').value||0),o=sum(newShares,x=>x.amount);$('#kTotal').textContent=(t||o)?'Total a pagar: '+A(t)+' · Mi parte: '+A(t-o):''}
+function renderShareChips(){
+  $('#kShares').innerHTML=newShares.map((x,i)=>`<span class="tag">${esc(x.name)} · ${A(x.amount)} <button class="x" style="padding:0 4px" data-act="rmshare" data-i="${i}">✕</button></span>`).join('');
+  updKTotal();
+}
+async function addCard(){
+  const card=$('#kCard').value.trim(),sub=+$('#kSub').value||0,due=$('#kDue').value;
+  if(!card||!(sub>0)){kmsg('Poné la tarjeta y el subtotal.',true);return}
+  if(!due){kmsg('Poné la fecha de vencimiento.',true);return}
+  const c={id:uid(),card,bank:$('#kBank').value.trim(),close:$('#kClose').value,due,sub,tax:+$('#kTax').value||0,usd:+$('#kUsd').value||0,shares:newShares.map(x=>({name:x.name,amount:x.amount,paid:false})),paid:false,paidDate:'',createdAt:Date.now()};
+  try{await cardPut(c)}catch(e){kmsg('No se pudo guardar ('+((e&&e.code)||'error')+').',true);return}
+  ['kSub','kTax','kUsd','kClose','kDue'].forEach(i=>{$('#'+i).value=''});newShares=[];renderShareChips();
+  sel=mk(due);$('#month').value=sel;$('#iMonth').value=sel;
+  kmsg('Resumen guardado ✔');renderDyn();
+}
+function renderCards(){
+  const pend=CARDS.filter(c=>!c.paid&&cDue(c)).map(c=>({c,d:daysTo(cDue(c))})).filter(x=>x.d<=7).sort((a,b)=>a.d-b.d);
+  $('#cardBanner').innerHTML=(pend.length&&gView!=='cards')?`<div class="card" style="border-color:var(--warn)"><div class="row" style="justify-content:space-between"><span>💳 <b>${pend.length}</b> resumen${pend.length>1?'es':''} por pagar pronto: ${pend.slice(0,3).map(x=>esc(x.c.card)+' ('+dayTxt(x.d)+')').join(', ')}</span><button class="chip" data-act="gview" data-v="cards">Ver tarjetas</button></div></div>`:'';
+  const alerts=pend.length?`<div class="card" style="border-color:var(--warn)"><h2>Por pagar pronto</h2>${pend.map(x=>`<div class="row" style="justify-content:space-between;padding:4px 0"><span><b>${esc(x.c.card)}</b>${x.c.bank?' · '+esc(x.c.bank):''} · ${A(cTotal(x.c))}${+x.c.usd?' + '+fmt(+x.c.usd,'USD'):''} <span class="${x.d<0?'bad':'muted'} small">${dayTxt(x.d)} (${esc(cDue(x.c))})</span></span><button class="chip" data-act="cardpay" data-id="${x.c.id}">Marcar pagada</button></div>`).join('')}</div>`:'';
+  const list=CARDS.filter(c=>mk(cDue(c))===sel).sort((a,b)=>cDue(a).localeCompare(cDue(b)));
+  const tTot=sum(list,cTotal),tMine=sum(list,cMine),tOwed=sum(list,cOwed),tUsd=sum(list,c=>+c.usd||0);
+  const tUnpaid=sum(list.filter(c=>!c.paid),cTotal),nUnpaid=list.filter(c=>!c.paid).length;
+  const people=[...new Set(CARDS.flatMap(c=>(c.shares||[]).map(x=>x.name)).filter(Boolean))].sort();
+  const names=[...new Set(['Visa','Master','Amex',...CARDS.map(c=>c.card).filter(Boolean)])];
+  const banks=[...new Set(CARDS.map(c=>c.bank).filter(Boolean))];
+  const keys=Array.from({length:6},(_,i)=>addM(sel,i-5));
+  const data=keys.map(k=>{const l=CARDS.filter(c=>mk(cDue(c))===k);return{k,t:sum(l,cTotal),m:sum(l,cMine)}});
+  const mx=Math.max(1,...data.map(d=>d.t));const W=320,H=130,gw=W/6;
+  const bars=data.map((d,n)=>{const h1=d.t/mx*(H-30),h2=d.m/mx*(H-30),x=n*gw+8;return `<rect x="${x}" y="${H-18-h1}" width="18" height="${h1}" rx="3" fill="var(--accent)"/><rect x="${x+20}" y="${H-18-h2}" width="18" height="${h2}" rx="3" fill="var(--warn)"/><text x="${x+19}" y="${H-5}" text-anchor="middle">${esc(mLabel(d.k))}</text>`}).join('');
+  const rows=list.map(c=>{
+    const dd=cDue(c)?daysTo(cDue(c)):null;
+    const st=c.paid?`<span class="tag good">Pagada${c.paidDate?' · '+esc(c.paidDate):''}</span>`:(dd!==null&&dd<0?'<span class="tag bad">Vencida</span>':'<span class="tag">Pendiente</span>');
+    const sh=(c.shares||[]).map((x,i)=>`<span class="tag">${esc(x.name)} · ${A(+x.amount||0)} <label class="chk"><input type="checkbox" data-act="cshpaid" data-id="${c.id}" data-i="${i}"${x.paid?' checked':''}> pagó</label><button class="x" style="padding:0 4px" data-act="cshdel" data-id="${c.id}" data-i="${i}" title="Quitar">✕</button></span>`).join(' ');
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.card)}</b>${c.bank?' · '+esc(c.bank):''} ${st}<div class="small muted">${c.close?'Cierre '+esc(c.close)+' · ':''}Vence ${esc(cDue(c))}</div></div><div class="amt">${A(cTotal(c))}<div class="small muted">Mi parte: ${A(cMine(c))}</div>${+c.usd?`<div class="small muted">+ ${fmt(+c.usd,'USD')}</div>`:''}</div></div>
+    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="cpaid" data-id="${c.id}"${c.paid?' checked':''}> Pagada</label><span class="small muted">Sub $</span><input type="number" step="any" value="${+c.sub||''}" data-act="csub" data-id="${c.id}" style="width:110px"><span class="small muted">Imp.</span><input type="number" step="any" value="${+c.tax||''}" data-act="ctax" data-id="${c.id}" style="width:90px"><span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="cusd" data-id="${c.id}" style="width:80px"><button class="x" data-act="delcard" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div>
+    <div class="exp-ctl">${sh}<input class="shn" list="dlPeople" placeholder="Persona" style="width:100px"><input class="sha" type="number" step="any" placeholder="$" style="width:100px"><button class="chip" data-act="cshadd" data-id="${c.id}">+ Parte</button></div></div>`;
+  }).join('');
+  $('#cardsDyn').innerHTML=`
+  <datalist id="dlCards">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+  <datalist id="dlBanks">${banks.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+  <datalist id="dlPeople">${people.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+  ${alerts}
+  <div class="card"><h2>Resúmenes que vencen en ${esc(mLabel(sel,true))}</h2>
+    <div class="grid g3">
+      <div class="stat"><div class="l">Total a pagar</div><div class="v">${A(tTot)}</div></div>
+      <div class="stat"><div class="l">Mi parte</div><div class="v">${A(tMine)}</div></div>
+      <div class="stat"><div class="l">Me deben (pendiente)</div><div class="v ${tOwed>0?'good':''}">${A(tOwed)}</div></div>
+    </div>
+    <p class="muted small" style="margin:10px 0 0">${nUnpaid?`Falta pagar ${nUnpaid} resumen${nUnpaid>1?'es':''} por ${A(tUnpaid)}.`:(list.length?'Todos los resúmenes del mes están pagados ✔':'')}${tUsd?` Consumos en dólares: ${fmt(tUsd,'USD')}.`:''}</p>
+  </div>
+  <div class="card"><h2>Detalle</h2>${rows||'<p class="empty">No hay resúmenes que venzan este mes. Cargá uno arriba.</p>'}</div>
+  <div class="card"><h2>Últimos 6 meses (por vencimiento)</h2>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:520px">${bars}</svg>
+    <div class="small muted"><span class="dot" style="background:var(--accent);display:inline-block"></span> Total &nbsp; <span class="dot" style="background:var(--warn);display:inline-block"></span> Mi parte</div>
+    <p class="muted small">Los resúmenes no se suman a los gastos del mes: los consumos ya se cargan como gasto cuando los hacés.</p>
+  </div>`;
+}
+function applyGView(){
+  $('#g-main').hidden=gView!=='main';$('#g-cards').hidden=gView!=='cards';$('#g-adj').hidden=gView!=='adj';
+  document.querySelectorAll('[data-act="gview"]').forEach(b=>{if(b.closest('.seg'))b.classList.toggle('on',b.dataset.v===gView)});
+  renderCards();
+}
+
+/* ---------- ajuste con Ari ---------- */
+const PARTNER='Ari';
+function amsg(t,bad){const m=$('#aMsg');if(!m)return;m.textContent=t||'';m.className='small '+(bad?'bad':'muted')}
+async function adjPut(a){
+  if(dbCol){const{id,...rest}=a;await dbCol.doc('adj_'+id).set(rest)}
+  else{const i=S.adj.findIndex(x=>x.id===a.id);if(i>=0)S.adj[i]=a;else S.adj.push(a);ADJ=S.adj;save();renderDyn()}
+}
+async function adjDel(id){
+  if(dbCol)await dbCol.doc('adj_'+id).delete();
+  else{S.adj=S.adj.filter(x=>x.id!==id);ADJ=S.adj;save();renderDyn()}
+}
+function prevShared(){const pm=addM(sel,-1);return S.expenses.filter(e=>e.shared&&mk(e.date)===pm&&(!e.sharedWith||/ari/i.test(e.sharedWith)))}
+function adjCalc(){
+  let b=0,total=0,paidMe=0,paidAri=0,myPart=0;
+  prevShared().filter(e=>!e.settled).forEach(e=>{const t=toBase(e.amount,e.currency),mine=t*e.sharePct/100;total+=t;myPart+=mine;if(e.paidBy==='ari'){b-=mine;paidAri+=t}else{b+=t-mine;paidMe+=t}});
+  ADJ.filter(a=>a.month===sel).forEach(a=>{
+    const t=toBase(+a.amount||0,a.currency);
+    if(a.kind==='transfer'){b+=a.paidBy==='ari'?-t:t;return}
+    const mine=t*(a.pct!=null?a.pct:50)/100;
+    total+=t;myPart+=mine;
+    if(a.paidBy==='ari'){b-=mine;paidAri+=t}else{b+=t-mine;paidMe+=t}
+  });
+  return{b,total,paidMe,paidAri,myPart};
+}
+async function saveRent(){
+  const by=$('#aRentBy').value,pct=Math.max(0,Math.min(100,+$('#aRentPct').value)),cur=$('#aRentCur').value;
+  const pc=isNaN(pct)?50:pct;
+  try{
+    for(const[kind,id,desc,el]of[['rent','rent_'+sel,'Alquiler','#aRent'],['rentexp','rentexp_'+sel,'Gastos de alquiler','#aRentExp']]){
+      const amt=+$(el).value||0,ex=ADJ.find(x=>x.id===id);
+      if(amt>0)await adjPut({id,month:sel,date:today(),kind,desc,amount:amt,currency:cur,paidBy:by,pct:pc,createdAt:ex?ex.createdAt:Date.now()});
+      else if(ex)await adjDel(id);
+    }
+    renderDyn();
+  }catch(e){amsg('No se pudo guardar ('+((e&&e.code)||'error')+').',true)}
+}
+async function addAdj(){
+  const kind0=$('#aKind').value,a1=kind0==='ari100',kind=a1?'other':kind0,amt=+$('#aAmt').value;
+  if(!(amt>0)){amsg('Poné el monto.',true);return}
+  const pct=a1?0:Math.max(0,Math.min(100,+$('#aPct').value));
+  const a={id:uid(),month:sel,date:$('#aDate').value||today(),kind,desc:$('#aDesc').value.trim()||(kind==='transfer'?'Transferencia':a1?'Gasto de Ari':'Gasto compartido'),amount:amt,currency:$('#aCur').value,paidBy:a1?'me':$('#aBy').value,pct:isNaN(pct)?50:pct,createdAt:Date.now()};
+  try{await adjPut(a)}catch(e){amsg('No se pudo guardar ('+((e&&e.code)||'error')+').',true);return}
+  $('#aDesc').value='';$('#aAmt').value='';amsg('Agregado ✔');renderDyn();
+}
+async function importAdj(list){for(const a of list){if(a&&a.id){try{await adjPut(a)}catch(e){break}}}}
+function renderAdj(){
+  const el=$('#adjDyn');if(!el)return;
+  const prev=prevShared().sort((a,b)=>a.date.localeCompare(b.date));
+  const items=ADJ.filter(a=>a.month===sel).sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||0)-(b.createdAt||0));
+  const r=adjCalc();
+  const rent=ADJ.find(x=>x.id==='rent_'+sel),rexp=ADJ.find(x=>x.id==='rentexp_'+sel),ref=rent||rexp||{};
+  const big=r.b>0.005?`<span class="good">${PARTNER} te debe ${fmt2(r.b)}</span>`:r.b<-0.005?`<span class="bad">Le debés ${fmt2(-r.b)} a ${PARTNER}</span>`:'<span class="good">Están a mano ✔</span>';
+  const prevRows=prev.map(e=>{
+    const t=e.amount,ari=t*(1-e.sharePct/100),ap=e.paidBy==='ari',mn=t*e.sharePct/100;
+    return `<div class="exp"><div class="exp-top"><div><b${e.settled?' style="text-decoration:line-through;opacity:.6"':''}>${esc(e.desc)}</b><div class="small muted">${esc(e.date)} · ${esc(e.category)}${e.sharedWith?' · con '+esc(e.sharedWith):''} · ${ap?'pagó '+PARTNER:'pagué yo'}</div></div><div class="amt">${fmt2(t,e.currency)}<div class="small muted">${ap?'Mi parte: '+fmt2(mn,e.currency)+' (se la debo)':'Parte de '+PARTNER+': '+fmt2(ari,e.currency)+' ('+Math.round(100-e.sharePct)+'%)'}</div></div></div>
+    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="settled" data-id="${e.id}"${e.settled?' checked':''}> Ya saldado</label></div></div>`;
+  }).join('');
+  const KT={rent:'Alquiler',rentexp:'Gastos alq.',other:'Gasto',transfer:'Transferencia'};
+  const itemRows=items.map(a=>{
+    const info=a.kind==='transfer'?(a.paidBy==='ari'?PARTNER+' me transfirió':'Le transferí a '+PARTNER):`Pagó ${a.paidBy==='ari'?PARTNER:'yo'} · mi parte ${a.pct!=null?a.pct:50}%`;
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(a.desc)}</b> <span class="tag">${KT[a.kind]||''}</span><div class="small muted">${esc(a.date||'')} · ${info}</div></div><div class="amt">${fmt2(+a.amount||0,a.currency)}</div><button class="x" data-act="adjdel" data-t="✕" data-id="${a.id}" title="Borrar">✕</button></div></div>`;
+  }).join('');
+  el.innerHTML=`
+  <div class="card"><h2>Ajuste con ${PARTNER} — ${esc(mLabel(sel,true))}</h2>
+    <div class="stat" style="margin-bottom:10px"><div class="l">Resultado</div><div class="v">${big}</div></div>
+    <div class="grid g3">
+      <div class="stat"><div class="l">Total compartido</div><div class="v">${fmt2(r.total)}</div></div>
+      <div class="stat"><div class="l">Pagué yo</div><div class="v">${fmt2(r.paidMe)}</div></div>
+      <div class="stat"><div class="l">Pagó ${PARTNER}</div><div class="v">${fmt2(r.paidAri)}</div></div>
+    </div>
+    <p class="muted small" style="margin:10px 0 0">Mi parte de los gastos: ${fmt2(r.myPart)}. Incluye los compartidos de ${esc(mLabel(addM(sel,-1),true))} (cargados en Gastos), el alquiler y lo que agregues abajo. Las transferencias entre ustedes descuentan del saldo.</p>
+  </div>
+  <div class="card"><h2>Alquiler de ${esc(mLabel(sel,true))}</h2>
+    <div class="row">
+      <label class="f">Alquiler<input id="aRent" type="number" step="any" value="${rent?rent.amount:''}" style="width:150px"></label>
+      <label class="f">Gastos de alquiler<input id="aRentExp" type="number" step="any" value="${rexp?rexp.amount:''}" style="width:150px"></label>
+      <label class="f">Moneda<select id="aRentCur">${opts(CURS,ref.currency||'ARS')}</select></label>
+      <label class="f">Pagó<select id="aRentBy"><option value="me"${ref.paidBy!=='ari'?' selected':''}>Yo</option><option value="ari"${ref.paidBy==='ari'?' selected':''}>${PARTNER}</option></select></label>
+      <label class="f">Mi parte %<input id="aRentPct" type="number" min="0" max="100" value="${ref.pct!=null?ref.pct:50}" style="width:80px"></label>
+      <button class="btn" data-act="saverent">Guardar</button>
+    </div>
+    <p class="muted small" style="margin:8px 0 0">Dejá un monto vacío y guardá para quitarlo.</p>
+  </div>
+  <div class="card"><h2>Gastos compartidos de ${esc(mLabel(addM(sel,-1),true))}</h2>
+    ${prevRows||'<p class="empty">No hay gastos compartidos con '+PARTNER+' ese mes. En Gastos, marcá el gasto como compartido (y elegí quién pagó) con “'+PARTNER+'” en “con quién”.</p>'}</div>
+  <div class="card"><h2>Cargados este mes</h2>${itemRows||'<p class="empty">Todavía no cargaste nada este mes.</p>'}</div>`;
+  wrapMic($('#aRent'));wrapMic($('#aRentExp'));
+}
+
+/* ---------- acciones ---------- */
+function tab(t){
+  ['gastos','proy','ing'].forEach(n=>{$('#t-'+n).hidden=n!==t});
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  window.scrollTo(0,0);
+}
+function addIncome(){
+  const src=$('#iSrc').value.trim()||'Ingreso',amt=+$('#iAmt').value,cur=$('#iCur').value,rate=+$('#iRate').value||0,m=$('#iMonth').value,rep=Math.max(0,Math.min(36,Math.round(+$('#iRep').value||0)));
+  if(!(amt>0)||!m)return;
+  for(let i=0;i<=rep;i++)S.incomes.push({id:uid(),month:addM(m,i),source:src,amount:amt,currency:cur,rate});
+  $('#iSrc').value='';$('#iAmt').value='';$('#iRate').value='';$('#iRep').value=0;
+  sel=m;$('#month').value=sel;commit();
+}
+function addGoal(){
+  const name=$('#gName').value.trim(),target=+$('#gTarget').value;
+  if(!name||!(target>0))return;
+  S.goals.push({id:uid(),name,target,cur:$('#gCur').value,saved:+$('#gSaved').value||0,deadline:$('#gDate').value||''});
+  $('#gName').value='';$('#gTarget').value='';$('#gSaved').value=0;commit();
+}
+/* ---------- modo independiente (fuera de Claude): comprobantes y descargas locales ---------- */
+const localAssets=(()=>{
+  if(window.claude||!window.indexedDB)return null;
+  let dbp=null;const urls=new Map();
+  const open=()=>dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('finanzas_assets',1);r.onupgradeneeded=()=>r.result.createObjectStore('a');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+  const tx=async(mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction('a',mode);const rq=fn(t.objectStore('a'));t.oncomplete=()=>res(rq&&rq.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
+  return{
+    urls,
+    async put(id,blob){await tx('readwrite',st=>st.put(blob,id));const o=urls.get(id);if(o)URL.revokeObjectURL(o);urls.set(id,URL.createObjectURL(blob))},
+    get(id){return tx('readonly',st=>st.get(id))},
+    async delete(id){await tx('readwrite',st=>st.delete(id));const u=urls.get(id);if(u){URL.revokeObjectURL(u);urls.delete(id)}},
+    async upload(blob){const id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,''):uid()+uid();await this.put(id,blob);return{id,url:urls.get(id)}},
+    async loadUrls(ids){for(const id of ids){if(urls.has(id))continue;try{const bl=await this.get(id);if(bl)urls.set(id,URL.createObjectURL(bl))}catch(e){}}}
+  };
+})();
+function recSrc(id){if(localAssets)return localAssets.urls.get(id)||'data:image/gif;base64,R0lGODlhAQABAAAAACw=';return '/_blob/'+id}
+function localDownloads(){return{save:async({filename,data})=>{const bl=new Blob([data],{type:'application/json'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),15000)}}}
+
+/* ---------- respaldo completo (incluye comprobantes) ---------- */
+function blobToData(bl){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(bl)})}
+function dataToBlob(d){const i=d.indexOf(',');if(i<0||d.slice(0,5)!=='data:')throw new Error('data');const head=d.slice(5,i),type=head.split(';')[0]||'image/jpeg';const bin=atob(d.slice(i+1));const arr=new Uint8Array(bin.length);for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);return new Blob([arr],{type})}
+function imgToBlob(url){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);c.toBlob(bl=>bl?res(bl):rej(new Error('blob')),'image/jpeg',0.9)}catch(e){rej(e)}};im.onerror=()=>rej(new Error('img'));im.src=url})}
+async function getReceiptBlob(id){
+  if(localAssets){const bl=await localAssets.get(id);if(!bl)throw new Error('missing');return bl}
+  try{const r=await fetch('/_blob/'+id);if(!r.ok)throw new Error('http '+r.status);return await r.blob()}
+  catch(e){return await imgToBlob('/_blob/'+id)}
+}
+async function exportData(){
+  if(!dl)return;
+  const btn=$('#expBtn');if(btn)btn.disabled=true;
+  toast('Preparando el respaldo…');
+  const receipts={};let miss=0;
+  for(const c of COMM){if(c.receipt&&!receipts[c.receipt]){try{receipts[c.receipt]=await blobToData(await getReceiptBlob(c.receipt))}catch(e){miss++}}}
+  const data=JSON.stringify({app:'finanzas',version:2,exportedAt:new Date().toISOString(),...S,commissions:COMM,cards:CARDS,adj:ADJ,receipts});
+  try{
+    await dl.save({filename:'finanzas-respaldo-'+today()+'.json',data});
+    toast(miss?'Respaldo guardado, pero '+miss+' comprobante'+(miss>1?'s no se pudieron':' no se pudo')+' incluir.':'Respaldo guardado ✔');
+  }catch(e){if(!(e&&e.code==='declined'))toast('No se pudo guardar el respaldo.')}
+  if(btn)btn.disabled=false;
+}
+async function importBackup(txt){
+  let o;
+  try{o=JSON.parse(txt)}catch(e){alert('Ese archivo no parece un respaldo válido.');return}
+  if(!o||typeof o!=='object'||Array.isArray(o)){alert('Ese archivo no parece un respaldo válido.');return}
+  if(o.kind==='cards'){await importCards(Array.isArray(o.cards)?o.cards:[]);return}
+  if(!confirm('Esto reemplaza los gastos, ingresos, presupuesto y objetivos de este dispositivo por los del archivo, y suma o actualiza comisiones, tarjetas y ajustes. ¿Seguir?'))return;
+  const arr=v=>Array.isArray(v)?v:[];
+  const cd=arr(o.cards),cm=arr(o.commissions),ad=arr(o.adj),rc=(o.receipts&&typeof o.receipts==='object')?o.receipts:{};
+  ['receipts','app','version','exportedAt','kind'].forEach(k=>{delete o[k]});
+  toast('Importando…');
+  const remap={};let okR=0,badR=0;
+  for(const[id,d]of Object.entries(rc)){
+    try{
+      const bl=dataToBlob(d);
+      if(localAssets)await localAssets.put(id,bl);
+      else if(assetsApi){const r=await assetsApi.upload(bl);remap[id]=r.id}
+      else throw new Error('sin almacenamiento');
+      okR++;
+    }catch(e){badR++}
+  }
+  cm.forEach(c=>{if(c&&c.receipt&&remap[c.receipt])c.receipt=remap[c.receipt]});
+  S=Object.assign(defaults(),o,{commissions:[],cards:[],adj:[]});
+  try{
+    if(dbCol){
+      for(const c of cm)if(c&&c.id)await commPut(c);
+      for(const c of cd)if(c&&c.id)await cardPut(c);
+      for(const c of ad)if(c&&c.id)await adjPut(c);
+    }else{S.commissions=cm;S.cards=cd;S.adj=ad;COMM=S.commissions;CARDS=S.cards;ADJ=S.adj}
+  }catch(e){toast('Se importó una parte y después hubo un error ('+((e&&e.code)||'error')+').');commit(true);return}
+  save();commit(true);
+  toast('Respaldo importado ✔'+(okR?' · '+okR+' comprobante'+(okR>1?'s':''):'')+(badR?' · '+badR+' sin importar':''));
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.closest('#lb')){$('#lb').hidden=true;return}
+  const b=e.target.closest('[data-act]');if(!b||b.tagName==='INPUT'||b.tagName==='SELECT')return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if(a==='tab')tab(b.dataset.tab);
+  else if(a==='send')send();
+  else if(a==='ex'){const i=$('#chatIn');i.value=b.dataset.text;i.focus()}
+  else if(a==='mode'){mode=b.dataset.mode;renderGastos()}
+  else if(a==='del'){S.expenses=S.expenses.filter(x=>x.id!==id);commit()}
+  else if(a==='delinc'){S.incomes=S.incomes.filter(x=>x.id!==id);commit()}
+  else if(a==='delgoal'){S.goals=S.goals.filter(x=>x.id!==id);commit()}
+  else if(a==='addinc')addIncome();
+  else if(a==='addgoal')addGoal();
+  else if(a==='export')exportData();
+  else if(a==='ingview'){ingView=b.dataset.v;applyIngView()}
+  else if(a==='gview'){gView=b.dataset.v;applyGView()}
+  else if(a==='addshare'){const n=$('#kShName').value.trim(),m=+$('#kShAmt').value;if(n&&m>0){newShares.push({name:n,amount:m});$('#kShName').value='';$('#kShAmt').value='';renderShareChips()}else kmsg('Poné el nombre y el monto de la parte.',true)}
+  else if(a==='rmshare'){newShares.splice(+b.dataset.i,1);renderShareChips()}
+  else if(a==='addcard')addCard();
+  else if(a==='saverent')saveRent();
+  else if(a==='addadj')addAdj();
+  else if(a==='adjdel')twoTap(b,'a'+id,()=>{adjDel(id).catch(()=>amsg('No se pudo borrar.',true))});
+  else if(a==='delcard')twoTap(b,'k'+id,()=>{cardDel(id).catch(()=>kmsg('No se pudo borrar.',true))});
+  else if(a==='cardpay')cardUpd(id,{paid:true,paidDate:today()});
+  else if(a==='cshadd'){const w=b.parentElement,n=w.querySelector('.shn').value.trim(),m=+w.querySelector('.sha').value,c=CARDS.find(x=>x.id===id);if(c&&n&&m>0)cardUpd(id,{shares:[...(c.shares||[]),{name:n,amount:m,paid:false}]})}
+  else if(a==='cshdel'){const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).filter((_,i)=>i!==+b.dataset.i)})}
+  else if(a==='rmrecur')twoTap(b,'q'+id,()=>{const t0=today();S.expenses=S.expenses.filter(x=>!(x.recurId===id&&x.date>t0));commit()});
+  else if(a==='addcom')addCommission();
+  else if(a==='delcom')twoTap(b,'d'+id,()=>{commDel(id).catch(()=>cmsg('No se pudo borrar.',true))});
+  else if(a==='rmrec')twoTap(b,'r'+id,async()=>{const c=COMM.find(x=>x.id===id);if(!c)return;try{if(assetsApi&&c.receipt)await assetsApi.delete(c.receipt)}catch(e){}try{await commPut({...c,receipt:''})}catch(e){cmsg('No se pudo quitar el comprobante.',true)}});
+  else if(a==='viewrec'){$('#lbImg').src=recSrc(b.dataset.rid);$('#lb').hidden=false}
+});
+$('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send()}});
+document.addEventListener('change',e=>{
+  const t=e.target,a=t.dataset&&t.dataset.act;if(!a)return;
+  const id=t.dataset.id,ex=S.expenses.find(x=>x.id===id);
+  switch(a){
+    case 'cat':ex.category=t.value;break;
+    case 'pay':ex.payment=t.value;break;
+    case 'paidby':ex.paidBy=t.value;if(t.value==='ari'){ex.shared=true;if(!(ex.sharePct<100))ex.sharePct=50;if(!ex.sharedWith)ex.sharedWith='Ari'}break;
+    case 'shared':ex.shared=t.checked;if(t.checked){if(!(ex.sharePct<100))ex.sharePct=50}else{ex.sharePct=100;ex.settled=false;ex.sharedWith='';ex.paidBy='me'}break;
+    case 'pct':ex.sharePct=Math.max(0,Math.min(100,+t.value||0));break;
+    case 'with':ex.sharedWith=t.value.trim();break;
+    case 'settled':ex.settled=t.checked;break;
+    case 'budget':S.budgets[t.dataset.cat]=+t.value||0;save();renderProyDyn();return;
+    case 'infl':S.infl=+t.value||0;save();renderProyDyn();return;
+    case 'projStart':if(t.value)S.projStart=t.value;save();renderProyDyn();return;
+    case 'goalsaved':{const g=S.goals.find(x=>x.id===id);if(g)g.saved=+t.value||0;break}
+    case 'rate':{const v=+t.value;if(v>0)S.rates[t.dataset.cur]=v;commit();return}
+    case 'base':{const f=(S.rates[S.base]||1)/(S.rates[t.value]||1);CATS.forEach(c=>{if(S.budgets[c])S.budgets[c]=Math.round(S.budgets[c]*f*100)/100});S.base=t.value;commit(true);return}
+    case 'month':if(t.value){sel=t.value;$('#iMonth').value=sel;commit()}return;
+    case 'rpmode':$('#rpN').value=t.value==='mensual'?12:6;updRp();return;
+    case 'akind':{const tr=t.value==='transfer',a1=t.value==='ari100';$('#aByL').textContent=tr?'Quién transfirió':'Quién pagó';$('#aPctL').hidden=tr||a1;if(a1)$('#aBy').value='me';$('#aBy').disabled=a1;return}
+    case 'attach':attachTo(id,t.files&&t.files[0]);return;
+    case 'cpaid':cardUpd(id,{paid:t.checked,paidDate:t.checked?today():''});return;
+    case 'csub':cardUpd(id,{sub:+t.value||0});return;
+    case 'ctax':cardUpd(id,{tax:+t.value||0});return;
+    case 'cusd':cardUpd(id,{usd:+t.value||0});return;
+    case 'cshpaid':{const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).map((x,i)=>i===+t.dataset.i?{...x,paid:t.checked}:x)});return}
+    case 'comusd':case 'comars':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comusd'?'usd':'ars']:+t.value||0}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
+    case 'import':{
+      const f=t.files&&t.files[0];if(!f)return;
+      const p=f.text();t.value='';
+      p.then(txt=>importBackup(txt)).catch(()=>alert('No se pudo leer el archivo.'));
+      return;
+    }
+  }
+  commit();
+});
+
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.act==='ksum')updKTotal();
+  if(t.dataset&&t.dataset.act==='calc'){const b=+$('#cBase').value,p=+$('#cPct').value;if(b>0&&p>0)$('#cUsd').value=Math.round(b*p)/100}
+});
+
+/* ---------- dictado por voz ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null;
+function toast(t){const d=$('#toast');d.textContent=t;d.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{d.hidden=true},4000)}
+function spokenNum(t){
+  t=String(t).toLowerCase().replace(/\s+/g,' ');
+  const m=t.match(/\d[\d.,]*\d|\d/);if(!m)return '';
+  let n=parseNum(m[0]);
+  const sf=t.slice(m.index+m[0].length).trim().match(/^(k\b|mil\b|lucas?\b|palos?\b|mill[oó]n(?:es)?\b)/);
+  if(sf)n*=/^(k|mil|luca)/.test(sf[1])?1000:1e6;
+  return n>0?String(n):'';
+}
+function toggleMic(inp,btn){
+  if(rec){const same=rec.btn===btn;try{rec.r.stop()}catch(e){}rec=null;if(same)return}
+  const r=new SR();r.lang='es-AR';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  const isNum=inp.type==='number',base=isNum?'':inp.value.trim();
+  const me={r,btn};rec=me;btn.classList.add('rec');
+  r.onresult=ev=>{
+    let txt='';for(let i=0;i<ev.results.length;i++)txt+=ev.results[i][0].transcript;txt=txt.trim();
+    if(isNum){const n=spokenNum(txt);if(n)inp.value=n;else if(ev.results[ev.results.length-1].isFinal)toast('No entendí el número. Probá decir, por ejemplo, “25 mil”.')}
+    else inp.value=(base?base+' ':'')+txt;
+    inp.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  r.onerror=ev=>{
+    const c=ev&&ev.error;
+    if(c==='not-allowed'||c==='service-not-allowed')toast('El micrófono está bloqueado en esta vista. Permitilo en el navegador o abrí la app en su propia pestaña.');
+    else if(c==='no-speech')toast('No te escuché. Probá de nuevo.');
+    else if(c==='audio-capture')toast('No encuentro un micrófono.');
+    else if(c==='network')toast('Sin conexión para el reconocimiento de voz.');
+    else if(c!=='aborted')toast('No se pudo usar el micrófono.');
+  };
+  r.onend=()=>{btn.classList.remove('rec');if(rec===me)rec=null};
+  try{r.start()}catch(e){btn.classList.remove('rec');rec=null;toast('No se pudo iniciar el micrófono.')}
+}
+function wrapMic(inp){
+  if(!SR||!inp||inp.parentElement.classList.contains('mw'))return;
+  const w=document.createElement('span');w.className='mw'+(inp.classList.contains('grow')?' grow':'');
+  inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+  const b=document.createElement('button');b.type='button';b.className='mic';b.textContent='🎤';b.title='Dictar por voz';b.setAttribute('aria-label','Dictar por voz');
+  b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleMic(inp,b)});
+  w.appendChild(b);
+}
+function initMics(){['chatIn','kCard','kBank','kShName','kShAmt','kSub','kTax','kUsd','aDesc','aAmt','gName','gTarget','gSaved','iSrc','iAmt','cJur','cAgent','cAddr','cUsd','cArs','cBase'].forEach(id=>wrapMic(document.getElementById(id)))}
+
+/* ---------- init ---------- */
+renderStatic();renderDyn();renderShareChips();updRp();initMics();
+bubble('¡Hola! Contame tus gastos como si le escribieras a un amigo: monto, en qué, cómo pagaste y si fue compartido (también si lo pagó Ari). Yo los ordeno.','bot');
+(async()=>{
+  const standalone=!window.claude;
+  try{
+    const g=n=>window.claude?claude.use(n).catch(()=>null):Promise.resolve(null);
+    const[sm,dn,as,db,us]=await Promise.all(['sample','downloads','assets','db','user'].map(g));
+    sampleFn=sm;dl=dn;assetsApi=as;
+    if(standalone){
+      dl=localDownloads();assetsApi=localAssets;
+      if(localAssets)await localAssets.loadUrls(COMM.map(c=>c.receipt).filter(Boolean));
+      try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+      if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+    const myId=us?await us.id():null;
+    if(db&&myId)await setupDb(db,myId);
+    else renderDyn();
+  }catch(e){}
+  $('#aiBadge').textContent=sampleFn?'IA activa':'Modo básico';
+  $('#bkNote').textContent=standalone?'Todo se guarda en este dispositivo, dentro del navegador. Hacé un respaldo de vez en cuando: incluye gastos, ingresos, comisiones con comprobantes, tarjetas y ajustes.':'Gastos, ingresos y proyección se guardan en este navegador; comisiones, tarjetas y ajustes, en tu cuenta. El respaldo incluye todo, comprobantes incluidos, para llevarlo a otro lugar.';
+  if(!dl)$('#expBtn').hidden=true;
+})();
+</script>
+</body>
+</html>
