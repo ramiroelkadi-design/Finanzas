@@ -1,4 +1,5 @@
 {
+  "id": "./finanzas-app",
   "name": "Mis finanzas",
   "short_name": "Finanzas",
   "description": "Gastos, ingresos, tarjetas y proyección personal",
