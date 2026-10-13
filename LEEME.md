@@ -21,4 +21,4 @@ Si cargaste datos en más de un dispositivo, hacé el respaldo en el que tenga m
 - Fuera de Claude no está la interpretación con IA del chat: funciona el modo básico (entiende montos, "lucas", cuotas, medio de pago, "pagó Ari", etc.). El dictado por voz sí funciona.
 - Hacé un respaldo de vez en cuando: si borrás los datos del navegador, se pierde lo cargado.
 - Cada dispositivo tiene sus propios datos. Para tener lo mismo en dos, exportá en uno e importá en el otro.
-- Para actualizar la app: reemplazá `index.html` en el repositorio y subí el número de `V` en `sw.js` (por ejemplo `finanzas-v3`). Los datos no se tocan.
+- Para actualizar la app: reemplazá `index.html` en el repositorio y subí el número de `V` en `sw.js` (por ejemplo `finanzas-v4`). Los datos no se tocan.

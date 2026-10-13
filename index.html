@@ -57,7 +57,7 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mu
 .legend{list-style:none;margin:0;padding:0;flex:1;min-width:150px;font-size:13px}
 .legend li{display:flex;align-items:center;gap:7px;padding:2px 0}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
-.lg-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-l{flex:1;min-width:0;overflow-wrap:anywhere}
 .lg-v{color:var(--muted);white-space:nowrap}
 .exp{border-top:1px solid var(--line);padding:10px 0}
 .exp:first-child{border-top:0}
@@ -70,6 +70,12 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mu
 .bar{height:8px;background:var(--chip);border-radius:6px;overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .bar.over>i{background:var(--bad)}
+.vbars{display:flex;gap:5px;align-items:flex-end;padding-top:6px}
+.vb{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.vb .vv{font-size:10px;color:var(--muted);white-space:nowrap;margin-bottom:2px}
+.vb i{display:block;width:100%;max-width:34px;background:var(--accent);opacity:.5;border-radius:5px 5px 0 0}
+.vb.cur i{opacity:1}
+.vb .vl{font-size:10px;color:var(--muted);margin-top:4px;text-align:center;line-height:1.15;min-height:24px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:6px 4px;text-align:right;border-top:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
@@ -268,9 +274,14 @@ details summary{list-style:revert}
       <div class="row" style="margin-bottom:8px">
         <label class="f">Fecha<input type="date" id="cDate"></label>
         <label class="f">Operación<select id="cOp"><option>Venta</option><option>Alquiler</option><option>Otra</option></select></label>
-        <label class="f">Jurisdicción<input id="cJur" list="dlJur" placeholder="CABA, PROV…" style="width:140px"></label>
-        <label class="f">Agente<input id="cAgent" list="dlAgents" placeholder="Nombre del agente" style="width:180px"></label>
+        <label class="f">Jurisdicción<select id="cJur" style="min-width:150px"></select></label>
+        <label class="f">Agente<select id="cAgent" data-act="agsel" style="min-width:170px"></select></label>
       </div>
+      <details id="agMgr" style="margin-bottom:10px"><summary id="agSum" class="small muted" style="cursor:pointer">Agentes</summary>
+        <div class="row" style="margin:8px 0"><input id="agNew" class="grow" placeholder="Nombre del nuevo agente"><button class="btn ghost" data-act="agadd">Agregar</button></div>
+        <div id="agList"></div>
+        <p class="small muted" style="margin:6px 0 0">Para cambiar un nombre, editalo y salí del campo: se actualiza en todas sus comisiones. Si quitás un agente de la lista, las comisiones ya cargadas conservan su nombre.</p>
+      </details>
       <div class="row" style="margin-bottom:8px">
         <label class="f grow">Domicilio<input id="cAddr" placeholder="Ej: Av Belgrano 1836"></label>
       </div>
@@ -317,6 +328,7 @@ let S=load();
 let sel=mk(today());
 let mode='mine';
 let sampleFn=null,dl=null,basicNoted=false;
+let comPer='anio',comMet='base';
 let dbCol=null,assetsApi=null,COMM=S.commissions||[],ingView='gen',CARDS=S.cards||[],ADJ=S.adj||[],gView='main';
 
 /* ---------- moneda ---------- */
@@ -328,12 +340,13 @@ function group(list,kf,vf){const m={};list.forEach(x=>{const k=kf(x);m[k]=(m[k]|
 function catColor(c){const i=CATS.indexOf(c);return PAL[i>=0?i:PAL.length-1]}
 function opts(list,cur){return list.map(v=>`<option${v===cur?' selected':''}>${esc(v)}</option>`).join('')}
 
-function pie(items){
+function pie(items,f){
+  f=f||(v=>fmt(v));
   const tot=sum(items,i=>i.value);
   if(!tot)return '<p class="empty">Sin datos este mes.</p>';
   const C=2*Math.PI*8;let cum=0;
   const sl=items.map(i=>{const len=i.value/tot*C;const s=`<circle r="8" cx="16" cy="16" fill="none" stroke="${i.color}" stroke-width="16" stroke-dasharray="${len.toFixed(3)} ${C.toFixed(3)}" stroke-dashoffset="${(-cum).toFixed(3)}" transform="rotate(-90 16 16)"/>`;cum+=len;return s}).join('');
-  const lg=items.map(i=>`<li><span class="dot" style="background:${i.color}"></span><span class="lg-l">${esc(i.label)}</span><span class="lg-v">${fmt(i.value)} · ${Math.round(i.value/tot*100)}%</span></li>`).join('');
+  const lg=items.map(i=>`<li><span class="dot" style="background:${i.color}"></span><span class="lg-l">${esc(i.label)}</span><span class="lg-v">${f(i.value)} · ${Math.round(i.value/tot*100)}%</span></li>`).join('');
   return `<div class="pie-wrap"><svg viewBox="0 0 32 32" class="pie">${sl}</svg><ul class="legend">${lg}</ul></div>`;
 }
 
@@ -698,24 +711,150 @@ async function attachTo(id,f){
     cmsg('Comprobante adjuntado ✔');
   }catch(e){cmsg('No se pudo subir el comprobante ('+((e&&e.code)||'error')+').',true)}
 }
+/* --- agentes y jurisdicciones --- */
+const JBASE=['CABA','Provincia de Buenos Aires'];
+function jurNorm(j){
+  j=String(j||'').trim().replace(/\s+/g,' ');if(!j)return '';
+  const n=j.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[.\s]/g,'');
+  if(/^(caba|capital|ciudad)/.test(n))return 'CABA';
+  if(/^(prov|pba|gba|conurbano)/.test(n))return 'Provincia de Buenos Aires';
+  return j;
+}
+function jurList(){
+  const ex=[...new Set(COMM.map(c=>jurNorm(c.jurisdiction)).filter(j=>j&&!JBASE.includes(j)&&j!=='Otra'))].sort((a,b)=>a.localeCompare(b,'es'));
+  return [...JBASE,...ex,'Otra'];
+}
+const agName=c=>String(c.agent||'').trim().replace(/\s+/g,' ');
+function agentList(){
+  if(!Array.isArray(S.agents)){
+    const d=[...new Set(COMM.map(agName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    if(COMM.length||!window.claude){S.agents=d;save();return S.agents}
+    return d;
+  }
+  return S.agents;
+}
+function setAgents(a){S.agents=[...new Set(a)].sort((x,y)=>x.localeCompare(y,'es'));save()}
+function addAgent(){
+  const inp=$('#agNew'),n=inp.value.trim().replace(/\s+/g,' ');if(!n)return;
+  const L=agentList();
+  if(L.some(x=>x.toLowerCase()===n.toLowerCase())){toast('Ese agente ya está en la lista.');return}
+  setAgents([...L,n]);inp.value='';
+  renderCom();$('#cAgent').value=n;
+}
+async function renameAgent(old,nw,inp){
+  nw=nw.trim().replace(/\s+/g,' ');
+  if(!nw||nw===old){inp.value=old;return}
+  const L=agentList(),other=L.find(x=>x!==old&&x.toLowerCase()===nw.toLowerCase());
+  if(other)nw=other;
+  setAgents(L.filter(x=>x!==old).concat(other?[]:[nw]));
+  let fail=0;
+  for(const c of COMM.filter(c=>agName(c)===old)){try{await commPut({...c,agent:nw})}catch(e){fail++}}
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  renderCom();
+  toast(fail?'Se cambió el nombre, pero '+fail+' comisión(es) no se pudieron actualizar.':(other?'Se unificó con "'+nw+'" ✔':'Nombre actualizado ✔'));
+}
+function renderAgents(){
+  const box=$('#agList');if(!box)return;
+  const L=agentList();
+  $('#agSum').textContent='Agentes ('+L.length+') · agregar o editar';
+  if(box.contains(document.activeElement))return;
+  const cnt=n=>COMM.filter(c=>agName(c)===n).length;
+  box.innerHTML=L.length?L.map(n=>`<div class="row" style="margin-bottom:6px"><input value="${esc(n)}" data-act="agren" data-old="${esc(n)}" style="flex:1;min-width:120px"><span class="small muted">${cnt(n)} op.</span><button class="x" data-act="agdel" data-t="✕" data-name="${esc(n)}" title="Quitar de la lista">✕</button></div>`).join(''):'<p class="empty">Todavía no hay agentes. Agregá el primero arriba.</p>';
+}
+function fillForm(){
+  const ja=$('#cJur'),aa=$('#cAgent');if(!ja||!aa)return;
+  const jv=ja.value,av=aa.value;
+  ja.innerHTML='<option value="">— Elegir —</option>'+opts(jurList(),'');
+  aa.innerHTML='<option value="">— Elegir agente —</option>'+opts(agentList(),'')+'<option value="__new">＋ Agregar agente…</option>';
+  ja.value=jv;if(ja.value!==jv)ja.value='';
+  aa.value=av;if(aa.value!==av)aa.value='';
+  renderAgents();
+}
+
+/* --- estadísticas --- */
+const comMetric=c=>comMet==='usd'?(+c.usd||0):comMet==='ars'?(+c.ars||0):comMet==='ops'?1:commBase(c);
+const comMF=v=>comMet==='ops'?v+(v===1?' op.':' ops.'):comMet==='usd'?fmt(v,'USD'):comMet==='ars'?fmt(v,'ARS'):fmt(v);
+function comInPeriod(c){
+  const m=c.month;if(!m)return false;
+  if(comPer==='mes')return m===sel;
+  if(comPer==='anio')return m.slice(0,4)===sel.slice(0,4);
+  if(comPer==='ult12'){const d=mdiff(m,sel);return d>=0&&d<12}
+  return true;
+}
+function comMonths(){
+  if(comPer==='mes')return Array.from({length:6},(_,i)=>addM(sel,i-5));
+  if(comPer==='anio'){const y=sel.slice(0,4);return Array.from({length:12},(_,i)=>y+'-'+p2(i+1))}
+  if(comPer==='ult12')return Array.from({length:12},(_,i)=>addM(sel,i-11));
+  const ms=COMM.map(c=>c.month).filter(Boolean).sort();if(!ms.length)return [];
+  let a=ms[0];const z=ms[ms.length-1];let n=mdiff(a,z)+1;if(n>24){a=addM(z,-23);n=24}
+  return Array.from({length:n},(_,i)=>addM(a,i));
+}
+function colorize(items){
+  const top=items.slice(0,8).map((i,k)=>({...i,color:PAL[k]})),rest=items.slice(8);
+  if(rest.length)top.push({label:'Otros ('+rest.length+')',value:sum(rest,r=>r.value),color:'#8a95a5'});
+  return top;
+}
+const compact=n=>{n=Math.round(n);return n>=1e6?(n/1e6).toFixed(1).replace('.',',').replace(',0','')+'M':n>=1e3?Math.round(n/1e3)+'k':String(n)};
+function rankTable(L,kf,title){
+  const g={};
+  L.forEach(c=>{const k=kf(c),a=g[k]||(g[k]={n:0,usd:0,ars:0,m:0});a.n++;a.usd+=+c.usd||0;a.ars+=+c.ars||0;a.m+=comMetric(c)});
+  const es=Object.entries(g).sort((a,b)=>b[1].m-a[1].m||b[1].n-a[1].n);
+  const tot=sum(es,e=>e[1].m)||1,mx=Math.max(...es.map(e=>e[1].m),1e-9);
+  const rows=es.map(([k,a])=>`<tr><td>${esc(k)}<div class="bar" style="margin-top:4px;min-width:60px"><i style="width:${Math.round(a.m/mx*100)}%"></i></div></td><td>${a.n}</td><td>${a.usd?fmt(a.usd,'USD'):'–'}</td><td>${a.ars?fmt(a.ars,'ARS'):'–'}</td><td>${Math.round(a.m/tot*100)}%</td></tr>`).join('');
+  return `<h3>${title}</h3><div class="scroll"><table><tr><th>${title.replace('Ranking por ','').replace(/^./,x=>x.toUpperCase())}</th><th>Ops</th><th>USD</th><th>Pesos</th><th>%</th></tr>${rows}</table></div>`;
+}
+function comStats(){
+  const L=COMM.filter(comInPeriod);
+  const perLbl={mes:mLabel(sel,true),anio:'Año '+sel.slice(0,4),ult12:'Últimos 12 meses',todo:'Todo el historial'}[comPer];
+  const metLbl={base:'equivalente en '+S.base,usd:'dólares',ars:'pesos',ops:'cantidad de operaciones'}[comMet];
+  const segP=[['mes','Mes'],['anio','Año'],['ult12','12 meses'],['todo','Todo']].map(([v,t])=>`<button data-act="cper" data-v="${v}" class="${comPer===v?'on':''}">${t}</button>`).join('');
+  const segM=[['base','Equiv. '+S.base],['usd','USD'],['ars','Pesos'],['ops','Ops']].map(([v,t])=>`<button data-act="cmet" data-v="${v}" class="${comMet===v?'on':''}">${esc(t)}</button>`).join('');
+  const head=`<div class="card"><h2>Estadísticas de comisiones</h2><div class="row" style="justify-content:space-between"><div class="seg">${segP}</div><div class="seg">${segM}</div></div><div class="small muted" style="margin-top:8px">${esc(perLbl)} · gráficos en ${esc(metLbl)}</div>`;
+  if(!L.length)return head+'<p class="empty">No hay comisiones en este período.</p></div>';
+  const tBase=sum(L,commBase),tUsd=sum(L,c=>+c.usd||0),tArs=sum(L,c=>+c.ars||0);
+  const nAg=new Set(L.map(agName).filter(Boolean)).size;
+  const kAg=c=>agName(c)||'Sin agente',kJur=c=>jurNorm(c.jurisdiction)||'Sin jurisdicción',kOp=c=>c.operation||'Sin tipo';
+  const pc=kf=>pie(colorize(group(L,kf,comMetric)),comMF);
+  const ms=comMonths(),vals=ms.map(m=>sum(COMM.filter(c=>c.month===m),comMetric)),mx=Math.max(...vals,0);
+  const bars=mx>0?`<div class="vbars">${ms.map((m,i)=>{
+    const v=vals[i],h=v>0?Math.max(3,Math.round(v/mx*110)):0,mo=new Date(+m.slice(0,4),+m.slice(5,7)-1,1).toLocaleDateString('es-AR',{month:'short'}).replace('.','');
+    const yr=(m.slice(5,7)==='01'||i===0)?'<br>'+m.slice(2,4):'';
+    return `<div class="vb${m===sel?' cur':''}" title="${esc(mLabel(m,true))}: ${esc(comMF(v))}"><span class="vv">${v>0?(comMet==='ops'?v:compact(v)):''}</span><i style="height:${h}px"></i><span class="vl">${mo}${yr}</span></div>`}).join('')}</div>`:'<p class="empty">Sin datos para graficar.</p>';
+  return head+`
+    <div class="grid g3" style="margin-top:10px">
+      <div class="stat"><div class="l">Operaciones</div><div class="v">${L.length}</div></div>
+      <div class="stat"><div class="l">Total (equiv. ${esc(S.base)})</div><div class="v good">${fmt(tBase)}</div></div>
+      <div class="stat"><div class="l">Promedio por operación</div><div class="v">${fmt(tBase/L.length)}</div></div>
+    </div>
+    <p class="muted small" style="margin:8px 0 0">${tUsd?fmt(tUsd,'USD'):'US$ 0'} en dólares · ${fmt(tArs,'ARS')} en pesos · ${nAg} agente${nAg===1?'':'s'} con operaciones</p>
+    <h3>Por mes${comPer==='mes'?' (últimos 6)':''}</h3>${bars}
+    <div class="pies">
+      <div><h3>Por jurisdicción</h3>${pc(kJur)}</div>
+      <div><h3>Por agente</h3>${pc(kAg)}</div>
+      <div><h3>Por tipo de operación</h3>${pc(kOp)}</div>
+    </div>
+    ${rankTable(L,kAg,'Ranking por agente')}
+    ${rankTable(L,kJur,'Ranking por jurisdicción')}
+  </div>`;
+}
+
 function renderCom(){
   const list=COMM.filter(c=>c.month===sel).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0));
   const tUsd=sum(list,c=>+c.usd||0),tArs=sum(list,c=>+c.ars||0),tBase=sum(list,commBase);
-  const ag={};list.forEach(c=>{const k=c.agent||'(sin agente)';const a=ag[k]||(ag[k]={n:0,usd:0,ars:0});a.n++;a.usd+=+c.usd||0;a.ars+=+c.ars||0});
-  const arows=Object.entries(ag).sort((a,b)=>b[1].usd-a[1].usd).map(([k,a])=>`<tr><td>${esc(k)}</td><td>${a.n}</td><td>${fmt(a.usd,'USD')}</td><td>${fmt(a.ars,'ARS')}</td></tr>`).join('');
-  const allAg=[...new Set(COMM.map(c=>c.agent).filter(Boolean))].sort();
-  const allJur=[...new Set(['CABA','Provincia de Buenos Aires',...COMM.map(c=>c.jurisdiction).filter(Boolean)])];
+  const AL=agentList(),JL=jurList();
   const rows=list.map(c=>{
     const rec=c.receipt
       ?`<button class="thumb" data-act="viewrec" data-rid="${esc(c.receipt)}" title="Ver comprobante"><img src="${esc(recSrc(c.receipt))}" alt="Comprobante"></button>${assetsApi?`<button class="chip" data-act="rmrec" data-t="Quitar" data-id="${c.id}">Quitar</button>`:''}`
       :(assetsApi?`<label class="chip" style="cursor:pointer">📎 Adjuntar comprobante<input type="file" accept="image/*" data-act="attach" data-id="${c.id}" hidden></label>`:'<span class="small muted">sin comprobante</span>');
     const amt=(+c.usd?fmt(+c.usd,'USD'):'')+(+c.usd&&+c.ars?'<br>':'')+(+c.ars?fmt(+c.ars,'ARS'):'')+(+c.usd&&c.rate>0?`<div class="small muted">cambio ${esc(c.rate)}</div>`:'');
-    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(c.agent||'sin agente')}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${c.jurisdiction?`<span class="tag">${esc(c.jurisdiction)}</span>`:''}</div></div><div class="amt">${amt}</div></div>
+    const ag=agName(c),jn=jurNorm(c.jurisdiction);
+    const agL=ag&&!AL.includes(ag)?[...AL,ag]:AL,jL=jn&&!JL.includes(jn)?[...JL,jn]:JL;
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(ag||'sin agente')}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${jn?`<span class="tag">${esc(jn)}</span>`:''}</div></div><div class="amt">${amt}</div></div>
+    <div class="exp-ctl"><select data-act="comagent" data-id="${c.id}" title="Agente"><option value="">sin agente</option>${opts(agL,ag)}</select><select data-act="comjur" data-id="${c.id}" title="Jurisdicción"><option value="">sin jurisdicción</option>${opts(jL,jn)}</select></div>
     <div class="exp-ctl">${rec}<span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="comusd" data-id="${c.id}" style="width:90px"><span class="small muted">$</span><input type="number" step="any" value="${+c.ars||''}" data-act="comars" data-id="${c.id}" style="width:105px"><button class="x" data-act="delcom" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div></div>`;
   }).join('');
+  fillForm();
   $('#comDyn').innerHTML=`
-  <datalist id="dlAgents">${allAg.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
-  <datalist id="dlJur">${allJur.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
   <div class="card"><h2>Comisiones de ${esc(mLabel(sel,true))}</h2>
     <div class="grid g3">
       <div class="stat"><div class="l">Operaciones</div><div class="v">${list.length}</div></div>
@@ -724,7 +863,7 @@ function renderCom(){
     </div>
     <p class="muted small" style="margin:10px 0 0">Equivalente total en ${esc(S.base)}: <b>${fmt(tBase)}</b>. Se suma a tus ingresos del mes.</p>
   </div>
-  ${arows?`<div class="card"><h2>Por agente</h2><div class="scroll"><table><tr><th>Agente</th><th>Ops</th><th>USD</th><th>Pesos</th></tr>${arows}</table></div></div>`:''}
+  ${comStats()}
   <div class="card"><h2>Operaciones del mes</h2>${rows||'<p class="empty">Todavía no cargaste comisiones este mes.</p>'}</div>`;
 }
 function applyIngView(){
@@ -1056,11 +1195,16 @@ document.addEventListener('click',e=>{
   else if(a==='cshdel'){const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).filter((_,i)=>i!==+b.dataset.i)})}
   else if(a==='rmrecur')twoTap(b,'q'+id,()=>{const t0=today();S.expenses=S.expenses.filter(x=>!(x.recurId===id&&x.date>t0));commit()});
   else if(a==='addcom')addCommission();
+  else if(a==='agadd')addAgent();
+  else if(a==='agdel'){const n=b.dataset.name;twoTap(b,'g'+n,()=>{const k=COMM.filter(c=>agName(c)===n).length;setAgents(agentList().filter(x=>x!==n));renderCom();toast(k?'Se quitó de la lista. Sus '+k+' comisión(es) conservan el nombre.':'Agente quitado de la lista.')})}
+  else if(a==='cper'){comPer=b.dataset.v;renderCom()}
+  else if(a==='cmet'){comMet=b.dataset.v;renderCom()}
   else if(a==='delcom')twoTap(b,'d'+id,()=>{commDel(id).catch(()=>cmsg('No se pudo borrar.',true))});
   else if(a==='rmrec')twoTap(b,'r'+id,async()=>{const c=COMM.find(x=>x.id===id);if(!c)return;try{if(assetsApi&&c.receipt)await assetsApi.delete(c.receipt)}catch(e){}try{await commPut({...c,receipt:''})}catch(e){cmsg('No se pudo quitar el comprobante.',true)}});
   else if(a==='viewrec'){$('#lbImg').src=recSrc(b.dataset.rid);$('#lb').hidden=false}
 });
 $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send()}});
+$('#agNew').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addAgent()}});
 document.addEventListener('change',e=>{
   const t=e.target,a=t.dataset&&t.dataset.act;if(!a)return;
   const id=t.dataset.id,ex=S.expenses.find(x=>x.id===id);
@@ -1088,6 +1232,9 @@ document.addEventListener('change',e=>{
     case 'cusd':cardUpd(id,{usd:+t.value||0});return;
     case 'cshpaid':{const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).map((x,i)=>i===+t.dataset.i?{...x,paid:t.checked}:x)});return}
     case 'comusd':case 'comars':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comusd'?'usd':'ars']:+t.value||0}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
+    case 'agsel':if(t.value==='__new'){t.value='';const d=$('#agMgr');d.open=true;$('#agNew').focus()}return;
+    case 'agren':renameAgent(t.dataset.old,t.value,t);return;
+    case 'comagent':case 'comjur':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comagent'?'agent':'jurisdiction']:t.value}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'import':{
       const f=t.files&&t.files[0];if(!f)return;
       const p=f.text();t.value='';
@@ -1146,7 +1293,7 @@ function wrapMic(inp){
   b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleMic(inp,b)});
   w.appendChild(b);
 }
-function initMics(){['chatIn','kCard','kBank','kShName','kShAmt','kSub','kTax','kUsd','aDesc','aAmt','gName','gTarget','gSaved','iSrc','iAmt','cJur','cAgent','cAddr','cUsd','cArs','cBase'].forEach(id=>wrapMic(document.getElementById(id)))}
+function initMics(){['chatIn','kCard','kBank','kShName','kShAmt','kSub','kTax','kUsd','aDesc','aAmt','gName','gTarget','gSaved','iSrc','iAmt','agNew','cAddr','cUsd','cArs','cBase'].forEach(id=>wrapMic(document.getElementById(id)))}
 
 /* ---------- init ---------- */
 renderStatic();renderDyn();renderShareChips();updRp();initMics();
