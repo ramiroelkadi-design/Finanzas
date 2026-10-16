@@ -1126,7 +1126,7 @@ function renderCom(){
     const ag=agName(c),jn=jurNorm(c.jurisdiction);
     const agL=ag&&!AL.includes(ag)?[...AL,ag]:AL,jL=jn&&!JL.includes(jn)?[...JL,jn]:JL;
     return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(ag||'sin agente')}${c.opDate?' · operación del '+esc(dshort(c.opDate)):''}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${jn?`<span class="tag">${esc(jn)}</span>`:''}</div></div><div class="amt">${amt}</div></div>
-    <div class="exp-ctl"><select data-act="comagent" data-id="${c.id}" title="Agente"><option value="">sin agente</option>${opts(agL,ag)}</select><select data-act="comjur" data-id="${c.id}" title="Jurisdicción"><option value="">sin jurisdicción</option>${opts(jL,jn)}</select></div>
+    <div class="exp-ctl"><input type="date" value="${esc(c.date||'')}" data-act="comdate" data-id="${c.id}" title="Fecha (si cambia de mes, se mueve a ese mes)" aria-label="Fecha de la comisión"><select data-act="comop" data-id="${c.id}" title="Operación" aria-label="Operación">${opts(['Venta','Alquiler','Otra'].includes(c.operation)||!c.operation?['Venta','Alquiler','Otra']:['Venta','Alquiler','Otra',c.operation],c.operation||'Otra')}</select><select data-act="comagent" data-id="${c.id}" title="Agente"><option value="">sin agente</option>${opts(agL,ag)}</select><select data-act="comjur" data-id="${c.id}" title="Jurisdicción"><option value="">sin jurisdicción</option>${opts(jL,jn)}</select></div>
     <div class="exp-ctl">${rec}<span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="comusd" data-id="${c.id}" style="width:90px"><span class="small muted">$</span><input type="number" step="any" value="${+c.ars||''}" data-act="comars" data-id="${c.id}" style="width:105px">${+c.usd?`<span class="small muted">cambio</span><input type="number" step="any" value="${+c.rate||''}" placeholder="${S.rates.USD}" data-act="comrate" data-id="${c.id}" style="width:90px" title="ARS por 1 USD (vacío = usar el cambio actual)">`:''}<button class="x" data-act="delcom" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div></div>`;
   }).join('');
   fillForm();
@@ -1686,6 +1686,10 @@ document.addEventListener('change',e=>{
     case 'comusd':case 'comars':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comusd'?'usd':'ars']:+t.value||0}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'agsel':if(t.value==='__new'){t.value='';const d=$('#agMgr');d.open=true;$('#agNew').focus()}return;
     case 'agren':renameAgent(t.dataset.old,t.value,t);return;
+    case 'comdate':{const c=COMM.find(x=>x.id===id);if(!c)return;if(!t.value){t.value=c.date||'';return}
+      const nm=mk(t.value),moved=nm!==c.month;
+      commPut({...c,date:t.value,month:nm}).then(()=>{if(moved)toast('Comisión movida a '+mLabel(nm,true))}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
+    case 'comop':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,operation:t.value}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'comagent':case 'comjur':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comagent'?'agent':'jurisdiction']:t.value}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'import':{
       const f=t.files&&t.files[0];if(!f)return;
