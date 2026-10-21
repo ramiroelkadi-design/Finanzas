@@ -1108,6 +1108,20 @@ function comStats(){
   </div>`;
 }
 
+const facPend=c=>!!c.facturada&&!(c.ivaPaid&&c.iibbPaid);
+function facTag(c){
+  if(!c.facturada)return '';
+  if(facPend(c)){const f=[!c.ivaPaid?'IVA':'',!c.iibbPaid?'IIBB':''].filter(Boolean).join(' e ');return `<span class="tag" style="background:var(--warn);color:#1b2430;font-weight:600">🧾 Facturada · falta cobrar ${f}</span>`}
+  return '<span class="tag" style="color:var(--good)">🧾 Facturada · IVA e IIBB cobrados</span>';
+}
+function facCtl(c){
+  return `<label class="chk"><input type="checkbox" data-act="comfac" data-id="${c.id}"${c.facturada?' checked':''}> 🧾 Hice factura</label>`+(c.facturada?`<label class="chk"><input type="checkbox" data-act="comiva" data-id="${c.id}"${c.ivaPaid?' checked':''}> Me pagaron IVA</label><label class="chk"><input type="checkbox" data-act="comiibb" data-id="${c.id}"${c.iibbPaid?' checked':''}> Me pagaron IIBB</label>`:'');
+}
+function facCard(){
+  const fp=COMM.filter(facPend).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!fp.length)return '';
+  return `<div class="card" style="border-color:var(--warn)"><h2>🧾 Facturas con IVA / IIBB por cobrar (${fp.length})</h2><p class="muted small" style="margin-top:0">Quedan acá hasta que marques que te pagaron el IVA y los Ingresos Brutos.</p>${fp.map(c=>`<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(agName(c)||'sin agente')} · ${esc(c.operation||'')}</div></div><div class="amt">${(+c.usd?fmt(+c.usd,'USD'):'')+(+c.usd&&+c.ars?' + ':'')+(+c.ars?fmt(+c.ars,'ARS'):'')}</div></div><div class="exp-ctl">${facCtl(c)}</div></div>`).join('')}</div>`;
+}
 function pendCard(){
   const pc=COMM.filter(c=>c.pending).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   if(!pc.length)return '';
@@ -1125,8 +1139,9 @@ function renderCom(){
     const amt=(+c.usd?fmt(+c.usd,'USD'):'')+(+c.usd&&+c.ars?'<br>':'')+(+c.ars?fmt(+c.ars,'ARS'):'')+(+c.usd&&c.rate>0?`<div class="small muted">cambio ${esc(c.rate)}</div>`:'');
     const ag=agName(c),jn=jurNorm(c.jurisdiction);
     const agL=ag&&!AL.includes(ag)?[...AL,ag]:AL,jL=jn&&!JL.includes(jn)?[...JL,jn]:JL;
-    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(ag||'sin agente')}${c.opDate?' · operación del '+esc(dshort(c.opDate)):''}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${jn?`<span class="tag">${esc(jn)}</span>`:''}</div></div><div class="amt">${amt}</div></div>
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(c.address||'(sin domicilio)')}</b><div class="small muted">${esc(c.date||'')} · ${esc(ag||'sin agente')}${c.opDate?' · operación del '+esc(dshort(c.opDate)):''}</div><div style="margin-top:3px"><span class="tag">${esc(c.operation||'')}</span> ${jn?`<span class="tag">${esc(jn)}</span>`:''} ${facTag(c)}</div></div><div class="amt">${amt}</div></div>
     <div class="exp-ctl"><input type="date" value="${esc(c.date||'')}" data-act="comdate" data-id="${c.id}" title="Fecha (si cambia de mes, se mueve a ese mes)" aria-label="Fecha de la comisión"><select data-act="comop" data-id="${c.id}" title="Operación" aria-label="Operación">${opts(['Venta','Alquiler','Otra'].includes(c.operation)||!c.operation?['Venta','Alquiler','Otra']:['Venta','Alquiler','Otra',c.operation],c.operation||'Otra')}</select><select data-act="comagent" data-id="${c.id}" title="Agente"><option value="">sin agente</option>${opts(agL,ag)}</select><select data-act="comjur" data-id="${c.id}" title="Jurisdicción"><option value="">sin jurisdicción</option>${opts(jL,jn)}</select></div>
+    <div class="exp-ctl">${facCtl(c)}</div>
     <div class="exp-ctl">${rec}<span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="comusd" data-id="${c.id}" style="width:90px"><span class="small muted">$</span><input type="number" step="any" value="${+c.ars||''}" data-act="comars" data-id="${c.id}" style="width:105px">${+c.usd?`<span class="small muted">cambio</span><input type="number" step="any" value="${+c.rate||''}" placeholder="${S.rates.USD}" data-act="comrate" data-id="${c.id}" style="width:90px" title="ARS por 1 USD (vacío = usar el cambio actual)">`:''}<button class="x" data-act="delcom" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div></div>`;
   }).join('');
   fillForm();
@@ -1140,6 +1155,7 @@ function renderCom(){
     <p class="muted small" style="margin:10px 0 0">Equivalente total en ${esc(S.base)}: <b>${fmt(tBase)}</b>. Se suma a tus ingresos del mes (solo las cobradas).${S.taxPct>0?`<br>Reserva sugerida para impuestos (${S.taxPct}%): <b>${fmt(tBase*S.taxPct/100)}</b>`:''}</p>
   </div>
   ${pendCard()}
+  ${facCard()}
   ${comStats()}
   <div class="card"><h2>Operaciones del mes</h2>${rows||'<p class="empty">Todavía no cargaste comisiones este mes.</p>'}</div>`;
 }
@@ -1398,6 +1414,8 @@ function alink(to){
 }
 
 function extraAlerts(items,hid){
+  const nf=COMM.filter(facPend).length;
+  if(nf&&!hid('fac'))items.push({k:'fac',sev:'warn',html:'🧾 <b>'+nf+'</b> factura'+(nf>1?'s':'')+' de comisiones con IVA / Ingresos Brutos por cobrar (ver Ingresos › Comisiones)'});
   const avg=avgIncome(6),nk=addM(curMonth(),1),r=recurMonth(nk);
   if(avg>0&&r>0&&r/avg*100>S.commLimit&&!hid('commit'))items.push({k:'commit',sev:'warn',html:'📆 Lo comprometido en cuotas y recurrentes en '+esc(mLabel(nk,true))+' es el <b>'+Math.round(r/avg*100)+'%</b> de tu ingreso promedio (tu límite: '+S.commLimit+'%).',btn:['flujo','Ver']});
 }
@@ -1689,6 +1707,10 @@ document.addEventListener('change',e=>{
     case 'comdate':{const c=COMM.find(x=>x.id===id);if(!c)return;if(!t.value){t.value=c.date||'';return}
       const nm=mk(t.value),moved=nm!==c.month;
       commPut({...c,date:t.value,month:nm}).then(()=>{if(moved)toast('Comisión movida a '+mLabel(nm,true))}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
+    case 'comfac':case 'comiva':case 'comiibb':{const c=COMM.find(x=>x.id===id);if(!c)return;
+      const f={comfac:'facturada',comiva:'ivaPaid',comiibb:'iibbPaid'}[a];
+      const n={...c,[f]:t.checked};
+      commPut(n).then(()=>{if(a!=='comfac'&&facPend(c)&&!facPend(n))toast('Listo: factura con IVA e IIBB cobrados ✓')}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'comop':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,operation:t.value}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'comagent':case 'comjur':{const c=COMM.find(x=>x.id===id);if(c)commPut({...c,[a==='comagent'?'agent':'jurisdiction']:t.value}).catch(()=>cmsg('No se pudo guardar el cambio.',true));return}
     case 'import':{
