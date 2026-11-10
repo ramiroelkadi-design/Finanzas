@@ -506,16 +506,18 @@ function localParse(text){
     const w1=raw.match(/(?:compartid[oa]|dividid[oa]|a medias|mitad)\s+con\s+(\p{L}+)/iu);
     if(w1)who=w1[1];
     else if(shKw){const w2=raw.match(/\bcon ([A-ZÁÉÍÓÚÑ]\p{L}*)/u);if(w2)who=w2[1]}
-    const ariRe=/\bari\s+(?:lo\s+)?(?:pag[oó]|puso|abon[oó]|compr[oó]|gast[oó])|\b(?:pag[oó]|puso|abon[oó])\s+ari\b|gasto\s+de\s+ari\b/i;
+    const ariRe=/\bari\s+(?:lo\s+)?(?:pag[oó]|paga|puso|abon[oó]|compr[oó]|gast[oó])|\b(?:pag[oó]|puso|abon[oó])\s+ari\b|\b(?:(?:lo|la)\s+)?paga\s+ari\b|\bpagad[oa]s?\s+por\s+ari\b|gasto\s+de\s+ari\b/i;
+    const own100Re=/\b(?:a\s+cargo\s+m[ií][oa]?|todo\s+m[ií]o|100\s?%\s*m[ií]o|se\s+lo\s+debo(?:\s+todo)?|le\s+debo\s+(?:todo|el\s+total|la\s+totalidad)|lo\s+debo\s+(?:todo|completo))\b/i;
+    const own100=own100Re.test(raw);
     const ari100=a100Re.test(raw),ariPaid=!ari100&&ariRe.test(raw);
     if(ariPaid||ari100)who='Ari';
     const shared=shKw||pct!==null||ariPaid||ari100;
     let off=0;if(/anteayer|antes de ayer/i.test(raw))off=-2;else if(/\bayer\b/i.test(raw))off=-1;
-    let desc=rest.replace(new RegExp(ariRe.source,'ig'),' ').replace(/\b(efectivo|cash|d[eé]bito|cr[eé]dito|tarjeta|compartid[oa]|a medias|dividid[oa]|transferencia|mercado ?pago)\b/ig,' ').replace(/[,;]+/g,' ').replace(/\b(usd|u\$s|us\$|d[oó]lares?|euros?|pesos|ars)\b/ig,' ').replace(/\b(con|en|de|por)\s*$/i,' ').replace(/\s+/g,' ').trim();
+    let desc=rest.replace(new RegExp(ariRe.source,'ig'),' ').replace(new RegExp(own100Re.source,'ig'),' ').replace(/\b(efectivo|cash|d[eé]bito|cr[eé]dito|tarjeta|compartid[oa]|a medias|dividid[oa]|transferencia|mercado ?pago)\b/ig,' ').replace(/[,;$]+/g,' ').replace(/\b(usd|u\$s|us\$|d[oó]lares?|euros?|pesos|ars)\b/ig,' ').replace(/\b(con|en|de|por)\s*$/i,' ').replace(/\s+/g,' ').trim();
     desc=desc.replace(/^[,\-–\s]+|[,\-–\s]+$/g,'');
     if(!desc)desc='Gasto';
     desc=desc.charAt(0).toUpperCase()+desc.slice(1);
-    out.push({desc:desc.slice(0,60),amount:num,currency:cur,category:cat,payment:pay,shared,sharedWith:who,sharePct:ari100?0:(shared?(pct==null?50:pct):100),paidBy:ariPaid?'ari':'me',dayOffset:off});
+    out.push({desc:desc.slice(0,60),amount:num,currency:cur,category:cat,payment:pay,shared,sharedWith:who,sharePct:ari100?0:(shared?(pct==null?(ariPaid&&own100?100:50):pct):100),paidBy:ariPaid?'ari':'me',dayOffset:off});
   });
   return out;
 }
@@ -524,7 +526,7 @@ function localParse(text){
 async function aiParse(text){
   const prompt=`Sos el parser de gastos personales de un usuario argentino. Hoy es ${today()}. Interpretá el mensaje y devolvé SOLO un array JSON (sin markdown ni texto extra), un objeto por gasto, con esta forma:
 {"desc": string corta, "amount": number, "currency": "ARS"|"USD"|"EUR"|"BRL", "category": una de ${JSON.stringify(CATS)}, "payment": una de ${JSON.stringify(PAYS)} ("Otro" si no se indica), "shared": boolean, "sharedWith": string (nombre o ""), "sharePct": número 0-100 = porcentaje que paga el usuario (50 si es compartido sin más datos, 100 si no es compartido), "dayOffset": entero <= 0 (0 hoy, -1 ayer), "paidBy": "me"|"ari"}
-Entendé la jerga: "lucas" o "k" = miles, "palos" = millones. Moneda por defecto: ${S.base}. "paidBy" es quién pagó el gasto: "ari" si el mensaje dice que lo pagó o puso Ari (la pareja del usuario), si no "me". Si pagó Ari, "shared" debe ser true y "sharedWith" "Ari" (sharePct = % que le corresponde al usuario, 50 si no se aclara). Si el gasto es 100% de Ari (lo pagó el usuario pero Ari se lo debe completo, por ejemplo \"100% de Ari\", \"es de Ari\", \"me lo debe Ari\"), devolvé paidBy \"me\", shared true, sharedWith \"Ari\" y sharePct 0. Si no hay ningún monto devolvé [].
+Entendé la jerga: "lucas" o "k" = miles, "palos" = millones. Moneda por defecto: ${S.base}. "paidBy" es quién pagó el gasto: "ari" si el mensaje dice que lo pagó o puso Ari (la pareja del usuario), si no "me". Si pagó Ari y el usuario se lo debe todo ("a cargo mío", "se lo debo", "100% mío"), devolvé paidBy "ari", shared true, sharedWith "Ari" y sharePct 100. Si pagó Ari, "shared" debe ser true y "sharedWith" "Ari" (sharePct = % que le corresponde al usuario, 50 si no se aclara). Si el gasto es 100% de Ari (lo pagó el usuario pero Ari se lo debe completo, por ejemplo \"100% de Ari\", \"es de Ari\", \"me lo debe Ari\"), devolvé paidBy \"me\", shared true, sharedWith \"Ari\" y sharePct 0. Si no hay ningún monto devolvé [].
 Mensaje: """${text}"""`;
   const r=await sampleFn.json(prompt,{modelTier:'quick',cache:false});
   return Array.isArray(r)?r:(r&&Array.isArray(r.expenses)?r.expenses:[]);
@@ -577,7 +579,7 @@ function expandRp(it,rp){
   return out;
 }
 function lineOf(i,rp,ex){
-  let s='✔ '+esc(i.desc)+' — '+fmt(i.amount,i.currency)+' · '+esc(i.category)+' · '+esc(i.payment)+(i.paidBy==='ari'?' · pagó Ari':'')+(i.shared?' · compartido'+(i.sharedWith?' con '+esc(i.sharedWith):'')+(i.sharePct===0&&i.paidBy!=='ari'?' · 100% de Ari, te lo debe':' ('+i.sharePct+'% tuyo)'):'');
+  let s='✔ '+esc(i.desc)+' — '+fmt(i.amount,i.currency)+' · '+esc(i.category)+' · '+esc(i.payment)+(i.paidBy==='ari'?' · pagó Ari':'')+(i.shared?' · compartido'+(i.sharedWith?' con '+esc(i.sharedWith):'')+(i.sharePct===0&&i.paidBy!=='ari'?' · 100% de Ari, te lo debe':(i.paidBy==='ari'&&i.sharePct===100?' · 100% a tu cargo: se lo debés todo a Ari':' ('+i.sharePct+'% tuyo)')):'');
   if(rp){const last=mLabel(mk(ex[ex.length-1].date));s+=rp.kind==='cuota'?' · '+rp.n+' cuotas de '+fmt(ex[0].amount,i.currency)+' hasta '+esc(last):' · todos los meses ('+rp.n+') hasta '+esc(last)}
   return s;
 }
@@ -595,7 +597,7 @@ function renderRecur(){
     const fut=l.filter(e=>e.date>t);if(!fut.length)return '';
     const f=l[0],isC=f.recurKind==='cuota',done=l.length-fut.length;
     const rest=sum(fut,e=>toBase(e.amount,e.currency));
-    return `<div class="exp"><div class="exp-top"><div><b>${esc(f.desc)}</b> <span class="tag">${isC?'Cuotas':'Mensual'}</span><div class="small muted">${done} de ${l.length} ya pasaron · próxima: ${esc(dshort(fut[0].date))}</div></div><div class="amt">${fmt(f.amount,f.currency)}<div class="small muted">Restante: ${fmt(rest)}</div></div></div><div class="exp-ctl"><button class="chip" data-act="rmrecur" data-t="Quitar las que faltan" data-id="${esc(id)}">Quitar las que faltan</button></div></div>`;
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(f.desc)}</b> <span class="tag">${isC?'Cuotas':'Mensual'}</span><div class="small muted">${done} de ${l.length} ya pasaron · próxima: ${esc(dshort(fut[0].date))}</div></div><div class="amt">${fmt(f.amount,f.currency)}<div class="small muted">Restante: ${fmt(rest)}</div></div></div><div class="exp-ctl"><button class="chip" data-act="recari" data-t="Pagó Ari, 100% a mi cargo" data-id="${esc(id)}">Pagó Ari, 100% a mi cargo</button> <button class="chip" data-act="rmrecur" data-t="Quitar las que faltan" data-id="${esc(id)}">Quitar las que faltan</button></div></div>`;
   }).join('');
   el.innerHTML=rows?`<div class="card"><h2>Cuotas y gastos recurrentes</h2>${rows}</div>`:'';
 }
@@ -1651,6 +1653,7 @@ document.addEventListener('click',e=>{
   else if(a==='cardpay')cardUpd(id,{paid:true,paidDate:today()});
   else if(a==='cshadd'){const w=b.parentElement,n=w.querySelector('.shn').value.trim(),m=+w.querySelector('.sha').value,c=CARDS.find(x=>x.id===id);if(c&&n&&m>0)cardUpd(id,{shares:[...(c.shares||[]),{name:n,amount:m,paid:false}]})}
   else if(a==='cshdel'){const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).filter((_,i)=>i!==+b.dataset.i)})}
+  else if(a==='recari'){S.expenses.forEach(x=>{if(x.recurId===id){x.paidBy='ari';x.shared=true;x.sharedWith='Ari';x.sharePct=100}});commit();toast('Listo: todas pagó Ari y las debés completas')}
   else if(a==='rmrecur')twoTap(b,'q'+id,()=>{const t0=today();S.expenses=S.expenses.filter(x=>!(x.recurId===id&&x.date>t0));commit()});
   else if(a==='addcom')addCommission();
   else if(a==='agadd')addAgent();
