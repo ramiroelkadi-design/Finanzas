@@ -548,10 +548,17 @@ function norm(x){
 /* ---------- recurrencia: cuotas y mensuales ---------- */
 function extractRecur(seg){
   let t=seg,rp=null,m;
-  if(m=t.match(/(\d{1,2})\s*cuotas?\s*(?:fijas\s*)?(?:de|x)\s*(?=[$\d])/i)){rp={kind:'cuota',n:+m[1],each:true};t=t.replace(m[0],' ')}
-  else if(m=t.match(/(?:en\s+)?(\d{1,2})\s*cuotas?(?:\s+(?:fijas|sin\s+inter[eé]s))?/i)){rp={kind:'cuota',n:+m[1],each:null};t=t.replace(m[0],' ')}
+  if(m=t.match(/(?<![\d.,])(\d{1,2})\s*cuotas?\s*(?:fijas\s*)?(?:de|x)\s*(?=[$\d])/i)){rp={kind:'cuota',n:+m[1],each:true};t=t.replace(m[0],' ')}
+  else if(m=t.match(/(?:en\s+)?(?<![\d.,])(\d{1,2})\s*cuotas?(?:\s+(?:fijas|sin\s+inter[eé]s))?/i)){rp={kind:'cuota',n:+m[1],each:null};t=t.replace(m[0],' ')}
   else if(m=t.match(/(?:todos\s+los\s+meses|cada\s+mes|mensual(?:es|mente)?)(?:\s+(?:durante|por|x)\s+(\d{1,2})\s+meses)?/i)){rp={kind:'mensual',n:m[1]?+m[1]:null};t=t.replace(m[0],' ')}
   else if(m=t.match(/(?:durante|por|x)\s+(\d{1,2})\s+meses/i)){rp={kind:'mensual',n:+m[1]};t=t.replace(m[0],' ')}
+  if(rp){
+    const MN=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const tn=t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/setiembre/i,'septiembre');
+    let m2=tn.match(/(?:a\s+partir\s+del?|desde(?:\s+el\s+mes\s+de)?|empezando\s+en|comenzando\s+en|arranca\s+en|a\s+partir\s+de\s+el\s+mes\s+de)\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i);
+    if(m2){rp.startM=(MN.indexOf(m2[1].toLowerCase())-new Date().getMonth()+12)%12;t=t.slice(0,m2.index)+' '+t.slice(m2.index+m2[0].length)}
+    else if(m2=tn.match(/(?:a\s+partir\s+d(?:el|e\s+el)\s+|desde\s+el\s+|empezando\s+el\s+|el\s+)(?:mes\s+que\s+viene|proximo\s+mes)/i)){rp.startM=1;t=t.slice(0,m2.index)+' '+t.slice(m2.index+m2[0].length)}
+  }
   return{text:t.replace(/\s+/g,' ').trim(),rp};
 }
 function resolveRp(r){
@@ -562,7 +569,7 @@ function resolveRp(r){
   if(rp.n==null)rp.n=(mode===rp.kind&&uiN)?uiN:(rp.kind==='cuota'?6:12);
   rp.n=Math.max(2,Math.min(60,rp.n));
   if(rp.kind==='cuota'&&rp.each==null)rp.each=$('#rpAmt').value==='each';
-  rp.start=mode!=='once'?(+$('#rpStart').value||0):0;
+  rp.start=rp.startM!=null?rp.startM:(mode!=='once'?(+$('#rpStart').value||0):0);
   return rp;
 }
 function addMonthDate(ds,k){const[y,m,d]=ds.split('-').map(Number);const last=new Date(y,m-1+k+1,0).getDate();return dstr(new Date(y,m-1+k,Math.min(d,last)))}
@@ -597,7 +604,7 @@ function renderRecur(){
     const fut=l.filter(e=>e.date>t);if(!fut.length)return '';
     const f=l[0],isC=f.recurKind==='cuota',done=l.length-fut.length;
     const rest=sum(fut,e=>toBase(e.amount,e.currency));
-    return `<div class="exp"><div class="exp-top"><div><b>${esc(f.desc)}</b> <span class="tag">${isC?'Cuotas':'Mensual'}</span><div class="small muted">${done} de ${l.length} ya pasaron · próxima: ${esc(dshort(fut[0].date))}</div></div><div class="amt">${fmt(f.amount,f.currency)}<div class="small muted">Restante: ${fmt(rest)}</div></div></div><div class="exp-ctl"><button class="chip" data-act="recari" data-t="Pagó Ari, 100% a mi cargo" data-id="${esc(id)}">Pagó Ari, 100% a mi cargo</button> <button class="chip" data-act="rmrecur" data-t="Quitar las que faltan" data-id="${esc(id)}">Quitar las que faltan</button></div></div>`;
+    return `<div class="exp"><div class="exp-top"><div><b>${esc(f.desc)}</b> <span class="tag">${isC?'Cuotas':'Mensual'}</span><div class="small muted">${done} de ${l.length} ya pasaron · próxima: ${esc(dshort(fut[0].date))}</div></div><div class="amt">${fmt(f.amount,f.currency)}<div class="small muted">Restante: ${fmt(rest)}</div></div></div><div class="exp-ctl"><button class="chip" data-act="recdel" data-t="Borrar toda la serie" data-id="${esc(id)}">Borrar toda la serie</button> <button class="chip" data-act="recari" data-t="Pagó Ari, 100% a mi cargo" data-id="${esc(id)}">Pagó Ari, 100% a mi cargo</button> <button class="chip" data-act="rmrecur" data-t="Quitar las que faltan" data-id="${esc(id)}">Quitar las que faltan</button></div></div>`;
   }).join('');
   el.innerHTML=rows?`<div class="card"><h2>Cuotas y gastos recurrentes</h2>${rows}</div>`:'';
 }
@@ -1344,7 +1351,7 @@ function renderAdj(){
   const prevRows=prev.map(e=>{
     const t=e.amount,ari=t*(1-e.sharePct/100),ap=e.paidBy==='ari',mn=t*e.sharePct/100;
     return `<div class="exp"><div class="exp-top"><div><b${e.settled?' style="text-decoration:line-through;opacity:.6"':''}>${esc(e.desc)}</b><div class="small muted">${esc(e.date)} · ${esc(e.category)}${e.sharedWith?' · con '+esc(e.sharedWith):''} · ${ap?'pagó '+PARTNER:'pagué yo'}</div></div><div class="amt">${fmt2(t,e.currency)}<div class="small muted">${ap?'Mi parte: '+fmt2(mn,e.currency)+' (se la debo)':'Parte de '+PARTNER+': '+fmt2(ari,e.currency)+' ('+Math.round(100-e.sharePct)+'%)'}</div></div></div>
-    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="settled" data-id="${e.id}"${e.settled?' checked':''}> Ya saldado</label></div></div>`;
+    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="settled" data-id="${e.id}"${e.settled?' checked':''}> Ya saldado</label><button class="x" data-act="del" data-id="${e.id}" title="Borrar este gasto" aria-label="Borrar este gasto">✕</button></div></div>`;
   }).join('');
   const KT={rent:'Alquiler',rentexp:'Gastos alq.',other:'Gasto',transfer:'Transferencia'};
   const itemRows=items.map(a=>{
@@ -1653,6 +1660,7 @@ document.addEventListener('click',e=>{
   else if(a==='cardpay')cardUpd(id,{paid:true,paidDate:today()});
   else if(a==='cshadd'){const w=b.parentElement,n=w.querySelector('.shn').value.trim(),m=+w.querySelector('.sha').value,c=CARDS.find(x=>x.id===id);if(c&&n&&m>0)cardUpd(id,{shares:[...(c.shares||[]),{name:n,amount:m,paid:false}]})}
   else if(a==='cshdel'){const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).filter((_,i)=>i!==+b.dataset.i)})}
+  else if(a==='recdel')twoTap(b,'z'+id,()=>{const gone=S.expenses.filter(x=>x.recurId===id);S.expenses=S.expenses.filter(x=>x.recurId!==id);commit();toast('Serie borrada ('+gone.length+')',()=>{S.expenses.push(...gone);commit()})});
   else if(a==='recari'){S.expenses.forEach(x=>{if(x.recurId===id){x.paidBy='ari';x.shared=true;x.sharedWith='Ari';x.sharePct=100}});commit();toast('Listo: todas pagó Ari y las debés completas')}
   else if(a==='rmrecur')twoTap(b,'q'+id,()=>{const t0=today();S.expenses=S.expenses.filter(x=>!(x.recurId===id&&x.date>t0));commit()});
   else if(a==='addcom')addCommission();
