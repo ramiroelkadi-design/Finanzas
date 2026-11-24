@@ -1,5 +1,5 @@
 // Mis finanzas - service worker. Subí el número de V cuando actualices la app.
-const V='finanzas-v9';
+const V='finanzas-v10';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -16,7 +16,7 @@ self.addEventListener('fetch',e=>{
   // solo manejamos archivos dentro del alcance de esta app
   if(!u.pathname.startsWith(new URL('./',self.registration.scope).pathname))return;
   e.respondWith(
-    fetch(r).then(res=>{
+    fetch(new Request(r,{cache:'no-cache'})).then(res=>{
       if(res&&res.ok){const copy=res.clone();caches.open(V).then(c=>c.put(r,copy))}
       return res;
     }).catch(()=>caches.match(r,{ignoreSearch:true}).then(m=>m||(r.mode==='navigate'?caches.match('./index.html'):undefined)))

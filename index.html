@@ -200,6 +200,7 @@ details summary{list-style:revert}
   <div id="g-cards" hidden>
     <div class="card">
       <h2>Nuevo resumen de tarjeta</h2>
+      <div class="row" style="margin-bottom:10px"><label class="btn ghost" style="cursor:pointer">📎 Adjuntar resumen (PDF o foto)<input id="kFile" type="file" accept="application/pdf,image/*" data-act="kfile" hidden></label><span id="kRead" class="small muted">Se completan los datos solos; después los revisás y guardás.</span></div>
       <div class="row" style="margin-bottom:8px">
         <label class="f">Tarjeta<input id="kCard" list="dlCards" placeholder="Visa, Master…" style="width:130px"></label>
         <label class="f">Banco<input id="kBank" list="dlBanks" placeholder="ICBC…" style="width:130px"></label>
@@ -222,6 +223,7 @@ details summary{list-style:revert}
       <div class="row" style="margin-top:10px"><button class="btn" data-act="addcard">Guardar resumen</button>
         <label class="btn ghost" style="cursor:pointer">Importar historial<input type="file" accept="application/json" data-act="import" hidden></label></div>
       <div id="kMsg" class="small muted" style="margin-top:8px"></div>
+      <div id="kCal" class="row" style="margin-top:8px"></div>
     </div>
     <div id="cardsDyn"></div>
   </div>
@@ -401,6 +403,7 @@ const PAL=['#2f6fed','#f2994a','#27ae60','#eb5757','#9b51e0','#56ccf2','#f2c94c'
 const PAYS=['Efectivo','Débito','Crédito','Transferencia','Mercado Pago','Otro'];
 const CURS=['ARS','USD','EUR','BRL'];
 const KEY='finanzas_v1';
+const APP_V='24-nov-2026 (v10)';
 const $=s=>document.querySelector(s);
 const p2=n=>String(n).padStart(2,'0');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1290,7 +1293,7 @@ function allDates(s){
     let d='';
     if(m[1]){let y=+m[3];if(y<100)y+=2000;d=isoD(y,+m[2],+m[1])}
     else{const mo=MESES[noAcc(m[5]).toLowerCase()];if(mo){let y=+m[6];if(y<100)y+=2000;d=isoD(y,mo,+m[4])}}
-    if(d)out.push({d,i:m.index});
+    if(d)out.push({d,i:m.index,n:m[0].length});
   }
   return out;
 }
@@ -1312,25 +1315,26 @@ function stmtParse(text){
   for(const[r,n]of cards){if(r.test(all)){R.card=n;break}}
   const banks=[[/ICBC/,'ICBC'],[/GALICIA/,'Galicia'],[/SANTANDER/,'Santander'],[/BBVA/,'BBVA'],[/MACRO/,'Macro'],[/BANCO\s+(?:DE\s+LA\s+)?NACION|\bBNA\b/,'Nación'],[/BANCO\s+PROVINCIA/,'Provincia'],[/BANCO\s+CIUDAD/,'Ciudad'],[/PATAGONIA/,'Patagonia'],[/HSBC/,'HSBC'],[/SUPERVIELLE/,'Supervielle'],[/ITAU/,'Itaú'],[/CREDICOOP/,'Credicoop'],[/COMAFI/,'Comafi'],[/BRUBANK/,'Brubank'],[/HIPOTECARIO/,'Hipotecario'],[/NARANJA\s*X/,'Naranja X']];
   for(const[r,n]of banks){if(r.test(all)){R.bank=n;break}}
-  const labelDate=(res,skip)=>{
+  const labelDate=(res)=>{
+    const lone=t=>{const a=allDates(t||'');return a.length===1&&t.length-a[0].n<=3};
     for(const re of res){
       for(let i=0;i<L.length;i++){
-        if(skip.test(L[i]))continue;
         const m=L[i].match(re);if(!m)continue;
+        const near=L[i].slice(Math.max(0,m.index-10),m.index+m[0].length+10);
+        if(/ANTERIOR|\bANT\b|PROX|SIGUIENTE/.test(near))continue;
         const tail=raw[i].slice(m.index);
         const d=allDates(tail);if(d.length)return d[0].d;
-        const nx=allDates(raw[i+1]||'');if(nx.length){
-          const ci=L[i].search(/CIERRE/),vi=L[i].search(/VENC|VTO/);
-          if(ci>=0&&vi>=0&&nx.length>1){const closeFirst=ci<vi;return {pair:closeFirst?[nx[0].d,nx[1].d]:[nx[1].d,nx[0].d],re}}
-          return nx[0].d;
-        }
+        const nx=allDates(raw[i+1]||'');
+        const ci=L[i].search(/CIERRE/),vi=L[i].search(/VENC|VTO/);
+        if(ci>=0&&vi>=0&&nx.length>1){const closeFirst=ci<vi;return {pair:closeFirst?[nx[0].d,nx[1].d]:[nx[1].d,nx[0].d]}}
+        if(lone(raw[i-1]))return allDates(raw[i-1])[0].d;
+        if(nx.length)return nx[0].d;
       }
     }
     return '';
   };
-  const skipD=/ANTERIOR|PROX|SIGUIENTE|MINIMO/;
-  let dd=labelDate([/VENC\w*\.?\s*ACTUAL/,/VTO\.?\s*ACTUAL/,/FECHA\s+DE\s+VENC\w*/,/\bVENC\w*\b/,/\bVTO\b/],skipD);
-  let cc=labelDate([/CIERRE\s*ACTUAL/,/FECHA\s+DE\s+CIERRE/,/\bCIERRE\b/],skipD);
+  let dd=labelDate([/VENC\w*\.?\s*ACTUAL/,/VTO\.?\s*ACTUAL/,/FECHA\s+DE\s+VENC\w*/,/\bVENCIMIENTO\b/,/\bVTO\b/]);
+  let cc=labelDate([/CIERRE\s*ACTUAL/,/FECHA\s+DE\s+CIERRE/,/ESTADO\s+DE\s+CUENTA\s+AL/,/\bCIERRE\b/]);
   const pr=[dd,cc].find(x=>x&&x.pair);
   if(pr){R.close=pr.pair[0];R.due=pr.pair[1]}else{R.due=dd||'';R.close=cc||''}
   if(typeof R.due!=='string')R.due='';if(typeof R.close!=='string')R.close='';
@@ -1352,8 +1356,8 @@ function stmtParse(text){
   R.usdLines=L.filter(x=>/U\$S|USD|DOLAR/.test(x)&&/\d[.,]\d{2}/.test(x)).length;
   /* impuesto PAIS / RG 5617 (30%) */
   L.forEach((x,i)=>{
-    if(/RG\.?\s*5617|\bDB\.?\s*RG\b|IMP(?:UESTO)?\.?\s*P\.?A\.?I\.?S\b|PERC\.?\s*RG\.?\s*5617/.test(x)){
-      const am=amountsIn(raw[i]).filter(a=>!a.usd&&a.v>0);
+    if(/RG\.?\s*5617|\bDB\.?\s*RG\b|IMP(?:UESTO)?\.?\s*P\.?A\.?I\.?S\b|PERC\.?\s*RG\.?\s*5617/.test(x)&&!/\bDEV\b|DEVOL|REINTEG|BONIF|ANUL/.test(x)){
+      const am=amountsIn(raw[i].replace(/\([^)]*\)/g,' ')).filter(a=>!a.usd&&a.v>0);
       if(am.length){R.tax+=am[am.length-1].v;R.taxLines++}
     }
   });
@@ -1727,6 +1731,7 @@ function renderMas(){
     <p class="muted small">Es una traba para que otra persona no entre con tu celular desbloqueado. No encripta los datos.</p>`;
   }
   const ab=$('#aboutDyn');
+  setTimeout(()=>{if(ab)ab.textContent+=' Versión de la app: '+APP_V+'.'},0);
   if(ab)ab.textContent=window.claude?'Estás usando la versión dentro de Claude: gastos, ingresos y proyección se guardan en este navegador; comisiones, tarjetas y ajustes, en tu cuenta de Claude. Si también usás la app instalada desde GitHub, cada una tiene sus propios datos: elegí una como principal y pasá lo cargado con Exportar/Importar.':'Estás usando la app independiente: todo se guarda en este dispositivo, dentro del navegador. Para tener lo mismo en otro dispositivo, exportá el respaldo en uno e importalo en el otro.';
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(lockCfg()&&hiddenAt&&Date.now()-hiddenAt>120000)showLock()});
