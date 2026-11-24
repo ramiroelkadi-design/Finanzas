@@ -1245,7 +1245,224 @@ async function addCard(){
   try{await cardPut(c)}catch(e){kmsg('No se pudo guardar ('+((e&&e.code)||'error')+').',true);return}
   ['kSub','kTax','kUsd','kClose','kDue'].forEach(i=>{$('#'+i).value=''});newShares=[];renderShareChips();
   sel=mk(due);$('#month').value=sel;$('#iMonth').value=sel;
-  kmsg('Resumen guardado ✔');renderDyn();
+  kmsg('Resumen guardado ✔ — agendá el vencimiento:');$('#kCal').innerHTML=calLinks(c);$('#kRead').textContent='';renderDyn();
+}
+/* ---------- calendario de vencimientos ---------- */
+function addDays(ds,n){const d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);return dstr(d)}
+function cardEvent(c){
+  const due=cDue(c);if(!due)return null;
+  const tot=cTotal(c),usd=+c.usd||0,fu=usd?usd.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+  const L=['Total a pagar: '+A(tot)];
+  if(usd)L.push('Consumos en USD: U$S '+fu);
+  if((c.shares||[]).length){L.push('Mi parte: '+A(cMine(c)));c.shares.forEach(x=>L.push('- '+x.name+': '+A(+x.amount||0)))}
+  if(c.close)L.push('Cierre: '+c.close);
+  L.push('Cargado en Mis finanzas');
+  return{title:'💳 Vence '+c.card+(c.bank?' '+c.bank:'')+' — '+A(tot)+(usd?' + U$S '+fu:''),details:L.join('\n'),start:due.replace(/-/g,''),end:addDays(due,1).replace(/-/g,''),id:c.id};
+}
+function gcalUrl(c){const e=cardEvent(c);return e?'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.title)+'&dates='+e.start+'/'+e.end+'&details='+encodeURIComponent(e.details):''}
+function icsText(c){
+  const e=cardEvent(c);if(!e)return '';
+  const q=s=>String(s).replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const st=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mis finanzas//ES','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:tarjeta-'+e.id+'@misfinanzas','DTSTAMP:'+st,'DTSTART;VALUE=DATE:'+e.start,'DTEND;VALUE=DATE:'+e.end,'SUMMARY:'+q(e.title),'DESCRIPTION:'+q(e.details),'BEGIN:VALARM','TRIGGER:-PT15H','ACTION:DISPLAY','DESCRIPTION:Mañana vence la tarjeta','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n';
+}
+async function icsDownload(c){
+  const txt=icsText(c);if(!txt)return;
+  const name='vencimiento-'+String(c.card||'tarjeta').replace(/\W+/g,'-')+'-'+cDue(c)+'.ics';
+  if(window.claude&&dl){try{await dl.save({filename:name,data:txt});return}catch(e){}}
+  try{
+    const bl=new Blob([txt],{type:'text/calendar'});const u=URL.createObjectURL(bl);
+    const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+  }catch(e){try{if(dl)await dl.save({filename:name,data:txt})}catch(e2){}}
+}
+function calLinks(c){const u=gcalUrl(c);return u?`<a class="chip" href="${esc(u)}" target="_blank" rel="noopener">📅 Agregar a Google Calendar</a><button class="chip" data-act="calics" data-id="${esc(c.id)}" title="Archivo con aviso un día antes">⬇ Archivo .ics (con aviso)</button>`:''}
+
+/* ---------- leer el resumen de la tarjeta (PDF o foto) ---------- */
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',PDFJS_W='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',TESS='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+const _ld={};
+function loadScript(src){return _ld[src]||(_ld[src]=new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>{delete _ld[src];no(new Error('No se pudo cargar '+src))};document.head.appendChild(s)}))}
+const MESES={ene:1,enero:1,feb:2,febrero:2,mar:3,marzo:3,abr:4,abril:4,may:5,mayo:5,jun:6,junio:6,jul:7,julio:7,ago:8,agosto:8,sep:9,sept:9,set:9,septiembre:9,setiembre:9,oct:10,octubre:10,nov:11,noviembre:11,dic:12,diciembre:12};
+const noAcc=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function isoD(y,m,d){return(m<1||m>12||d<1||d>31||y<2000||y>2100)?'':y+'-'+p2(m)+'-'+p2(d)}
+function allDates(s){
+  const out=[];const re=/\b(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{4}|\d{2})\b|\b(\d{1,2})[\s\-\/]*(?:de\s+)?([A-Za-zÁÉÍÓÚáéíóú]{3,10})\.?[\s\-\/]*(?:de\s+)?(\d{4}|\d{2})\b/g;let m;
+  while((m=re.exec(s))){
+    let d='';
+    if(m[1]){let y=+m[3];if(y<100)y+=2000;d=isoD(y,+m[2],+m[1])}
+    else{const mo=MESES[noAcc(m[5]).toLowerCase()];if(mo){let y=+m[6];if(y<100)y+=2000;d=isoD(y,mo,+m[4])}}
+    if(d)out.push({d,i:m.index});
+  }
+  return out;
+}
+function amountsIn(s){
+  const out=[];const re=/(-?)\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2}|\d+[.,]\d{2})(-?)(?!\d)/g;let m;
+  while((m=re.exec(s))){
+    const back=s.slice(Math.max(0,m.index-7),m.index);
+    let v=parseNum(m[2]);if(m[1]==='-'||m[3]==='-')v=-v;
+    out.push({v,usd:/U\$S|USD|US\$|U\$D|DOL/i.test(back),i:m.index});
+  }
+  return out;
+}
+function stmtParse(text){
+  const raw=String(text||'').split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const L=raw.map(x=>noAcc(x).toUpperCase());
+  const R={card:'',bank:'',close:'',due:'',sub:0,usd:0,tax:0,taxLines:0,usdLines:0};
+  const all=L.join('\n');
+  const cards=[[/AMERICAN\s+EXPRESS|\bAMEX\b/,'Amex'],[/MASTERCARD|MASTER\s*CARD|\bMASTER\b/,'Master'],[/\bVISA\b/,'Visa'],[/\bCABAL\b/,'Cabal'],[/NARANJA/,'Naranja']];
+  for(const[r,n]of cards){if(r.test(all)){R.card=n;break}}
+  const banks=[[/ICBC/,'ICBC'],[/GALICIA/,'Galicia'],[/SANTANDER/,'Santander'],[/BBVA/,'BBVA'],[/MACRO/,'Macro'],[/BANCO\s+(?:DE\s+LA\s+)?NACION|\bBNA\b/,'Nación'],[/BANCO\s+PROVINCIA/,'Provincia'],[/BANCO\s+CIUDAD/,'Ciudad'],[/PATAGONIA/,'Patagonia'],[/HSBC/,'HSBC'],[/SUPERVIELLE/,'Supervielle'],[/ITAU/,'Itaú'],[/CREDICOOP/,'Credicoop'],[/COMAFI/,'Comafi'],[/BRUBANK/,'Brubank'],[/HIPOTECARIO/,'Hipotecario'],[/NARANJA\s*X/,'Naranja X']];
+  for(const[r,n]of banks){if(r.test(all)){R.bank=n;break}}
+  const labelDate=(res,skip)=>{
+    for(const re of res){
+      for(let i=0;i<L.length;i++){
+        if(skip.test(L[i]))continue;
+        const m=L[i].match(re);if(!m)continue;
+        const tail=raw[i].slice(m.index);
+        const d=allDates(tail);if(d.length)return d[0].d;
+        const nx=allDates(raw[i+1]||'');if(nx.length){
+          const ci=L[i].search(/CIERRE/),vi=L[i].search(/VENC|VTO/);
+          if(ci>=0&&vi>=0&&nx.length>1){const closeFirst=ci<vi;return {pair:closeFirst?[nx[0].d,nx[1].d]:[nx[1].d,nx[0].d],re}}
+          return nx[0].d;
+        }
+      }
+    }
+    return '';
+  };
+  const skipD=/ANTERIOR|PROX|SIGUIENTE|MINIMO/;
+  let dd=labelDate([/VENC\w*\.?\s*ACTUAL/,/VTO\.?\s*ACTUAL/,/FECHA\s+DE\s+VENC\w*/,/\bVENC\w*\b/,/\bVTO\b/],skipD);
+  let cc=labelDate([/CIERRE\s*ACTUAL/,/FECHA\s+DE\s+CIERRE/,/\bCIERRE\b/],skipD);
+  const pr=[dd,cc].find(x=>x&&x.pair);
+  if(pr){R.close=pr.pair[0];R.due=pr.pair[1]}else{R.due=dd||'';R.close=cc||''}
+  if(typeof R.due!=='string')R.due='';if(typeof R.close!=='string')R.close='';
+  /* total en pesos */
+  const tl=[/SALDO\s+ACTUAL/,/TOTAL\s+A\s+PAGAR/,/PAGO\s+TOTAL/,/SALDO\s+TOTAL/,/TOTAL\s+(?:DEL\s+)?RESUMEN/];
+  tot:for(const re of tl){
+    for(let i=0;i<L.length;i++){
+      const m=L[i].match(re);if(!m||/ANTERIOR/.test(L[i]))continue;
+      const am=amountsIn(raw[i].slice(m.index)+' '+(raw[i+1]||''));
+      const p=am.find(a=>!a.usd&&a.v>0),u=am.find(a=>a.usd&&a.v>0);
+      if(p){R.sub=p.v;if(u&&!R.usd)R.usd=u.v;break tot}
+    }
+  }
+  if(!R.usd){
+    for(let i=0;i<L.length;i++){
+      if(/(?:CONSUMOS?|TOTAL|SALDO)\s+(?:EN\s+)?(?:DOLARES|U\$S|USD)/.test(L[i])){const am=amountsIn(raw[i].replace(/^.*?(?:DOLARES|U\$S|USD)/i,'')+' '+(raw[i+1]||'')).filter(a=>a.v>0);if(am.length){R.usd=am[0].v;break}}
+    }
+  }
+  R.usdLines=L.filter(x=>/U\$S|USD|DOLAR/.test(x)&&/\d[.,]\d{2}/.test(x)).length;
+  /* impuesto PAIS / RG 5617 (30%) */
+  L.forEach((x,i)=>{
+    if(/RG\.?\s*5617|\bDB\.?\s*RG\b|IMP(?:UESTO)?\.?\s*P\.?A\.?I\.?S\b|PERC\.?\s*RG\.?\s*5617/.test(x)){
+      const am=amountsIn(raw[i]).filter(a=>!a.usd&&a.v>0);
+      if(am.length){R.tax+=am[am.length-1].v;R.taxLines++}
+    }
+  });
+  R.tax=Math.round(R.tax*100)/100;
+  return R;
+}
+async function shrinkImg(file,max){
+  try{
+    const url=URL.createObjectURL(file);
+    const im=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+    const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));
+    const cv=document.createElement('canvas');cv.width=Math.round(im.naturalWidth*k);cv.height=Math.round(im.naturalHeight*k);
+    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(url);
+    return await new Promise(r=>cv.toBlob(b=>r(b||file),'image/jpeg',.88));
+  }catch(e){return file}
+}
+async function pdfRead(file,pwd){
+  await loadScript(PDFJS);
+  const lib=window.pdfjsLib;lib.GlobalWorkerOptions.workerSrc=PDFJS_W;
+  const buf=await file.arrayBuffer();let doc;
+  try{doc=await lib.getDocument({data:buf,password:pwd}).promise}
+  catch(e){
+    if(e&&e.name==='PasswordException'){
+      let p=null;try{p=prompt(e.code===2?'Contraseña incorrecta. Probá de nuevo (suele ser tu DNI):':'El PDF tiene contraseña (suele ser tu DNI). Escribila:')}catch(e2){}
+      if(p)return pdfRead(file,p);
+      throw new Error(window.claude?'el PDF tiene contraseña: adjuntalo desde la app instalada o sacale la contraseña':'Cancelado');
+    }
+    throw e;
+  }
+  const out=[];
+  for(let p=1;p<=Math.min(doc.numPages,15);p++){
+    const pg=await doc.getPage(p),tc=await pg.getTextContent();const rows={};
+    tc.items.forEach(it=>{if(!it.str||!it.str.trim())return;const y=Math.round(it.transform[5]/4);(rows[y]=rows[y]||[]).push({x:it.transform[4],s:it.str})});
+    Object.keys(rows).map(Number).sort((a,b)=>b-a).forEach(y=>out.push(rows[y].sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ')));
+  }
+  return{text:out.join('\n'),doc};
+}
+async function pdfToImages(doc){
+  const bl=[];
+  for(let p=1;p<=Math.min(doc.numPages,3);p++){
+    const pg=await doc.getPage(p),vp=pg.getViewport({scale:1.8});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+    await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    bl.push(await new Promise(r=>cv.toBlob(r,'image/jpeg',.88)));
+  }
+  return bl;
+}
+async function ocrBlobs(blobs){
+  await loadScript(TESS);
+  const parts=[];
+  for(const b of blobs){const r=await window.Tesseract.recognize(b,'spa');parts.push(r.data.text)}
+  return parts.join('\n');
+}
+async function stmtAI(text,images){
+  const rules=`Sos un extractor de datos de resúmenes de tarjeta de crédito argentinos. Devolvé SOLO un objeto JSON (sin markdown) con esta forma:
+{"card": "Visa"|"Master"|"Amex"|otra marca o "", "bank": nombre del banco o "", "close": "YYYY-MM-DD" fecha de CIERRE ACTUAL o "", "due": "YYYY-MM-DD" fecha de VENCIMIENTO ACTUAL o "", "sub": número = total a pagar en PESOS (saldo actual en $), "usd": número = total de consumos/saldo en DÓLARES (U$S), 0 si no hay, "tax": número = suma en pesos de las líneas del impuesto del 30% sobre consumos en dólares (aparecen como "DB.RG 5617 30%" o "Impuesto PAIS"), 0 si no hay, "notes": frase corta con dudas}.
+Reglas: los números van sin separador de miles y con punto decimal (en el resumen están en formato argentino 1.234,56). Usá las fechas del período ACTUAL, no las anteriores ni las próximas. "tax" es 0 si no hay consumos en dólares. Hoy es ${today()}.`;
+  const o={modelTier:'default',cache:false};
+  if(images&&images.length)o.images=images;
+  const r=await sampleFn.json(images&&images.length?rules:rules+'\n\nTEXTO DEL RESUMEN:\n"""'+String(text).slice(0,24000)+'"""',o);
+  const x=Array.isArray(r)?r[0]:r;if(!x||typeof x!=='object')return null;
+  const num=v=>{v=+v;return isFinite(v)&&v>0?v:0};
+  const dt=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?String(v):'';
+  return{card:String(x.card||'').slice(0,30),bank:String(x.bank||'').slice(0,30),close:dt(x.close),due:dt(x.due),sub:num(x.sub),usd:num(x.usd),tax:num(x.tax),notes:String(x.notes||'').slice(0,200)};
+}
+function stmtMerge(loc,ai){
+  const R={...loc};
+  if(ai){['card','bank','close','due'].forEach(k=>{if(ai[k])R[k]=ai[k]});['sub','usd','tax'].forEach(k=>{if(ai[k]>0)R[k]=ai[k]});if(ai.usd===0&&!loc.usd)R.usd=0;R.notes=ai.notes}
+  return R;
+}
+async function readStatement(file){
+  const msg=$('#kRead');const say=(t,bad)=>{msg.textContent=t;msg.className='small '+(bad?'bad':'muted')};
+  $('#kCal').innerHTML='';
+  const isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+  try{
+    say('Leyendo el resumen…');
+    let text='',imgs=null,loc=null,ai=null;
+    const canImg=!!(sampleFn&&sampleFn.limits&&(await sampleFn.limits().catch(()=>({}))).images);
+    if(isPdf){
+      const r=await pdfRead(file);text=r.text;
+      if(text.replace(/\s/g,'').length<80){say('El PDF no tiene texto: lo leo como imagen…');imgs=await pdfToImages(r.doc);text=''}
+    }else imgs=[await shrinkImg(file,1800)];
+    if(!text&&imgs){
+      if(sampleFn&&canImg){say('Leyendo la imagen con IA…');try{ai=await stmtAI('',imgs)}catch(e){ai=null}}
+      if(!ai){say('Leyendo la imagen (OCR, puede tardar un poco)…');text=await ocrBlobs(imgs)}
+    }
+    if(text){
+      loc=stmtParse(text);
+      if(sampleFn){say('Interpretando con IA…');try{ai=await stmtAI(text,null)}catch(e){ai=null}}
+    }
+    const R=ai?stmtMerge(loc||{card:'',bank:'',close:'',due:'',sub:0,usd:0,tax:0,taxLines:0,usdLines:0},ai):loc;
+    if(!R||(!R.sub&&!R.due&&!R.card)){say('No pude reconocer datos en ese archivo. Probá con el PDF original o completá a mano.',true);return}
+    if(!(R.usd>0)){R.tax=0}
+    const set=(id,v)=>{const el=$('#'+id);if(el&&v){el.value=v}};
+    set('kCard',R.card);set('kBank',R.bank);set('kClose',R.close);set('kDue',R.due);
+    set('kSub',R.sub?Math.round(R.sub*100)/100:'');set('kUsd',R.usd?Math.round(R.usd*100)/100:'');
+    $('#kTax').value=R.tax>0?Math.round(R.tax*100)/100:'';
+    updKTotal();
+    const f=[];
+    f.push(R.card?R.card+(R.bank?' '+R.bank:''):'tarjeta sin identificar');
+    f.push(R.close?'cierre '+R.close:'cierre ?');f.push(R.due?'vence '+R.due:'vencimiento ?');
+    f.push(R.sub?'subtotal '+A(R.sub):'subtotal ?');
+    if(R.usd>0)f.push('USD '+R.usd.toLocaleString('es-AR',{minimumFractionDigits:2}));
+    const tx=R.usd>0?(R.tax>0?'Impuesto 30% (RG 5617) restado: '+A(R.tax)+'.':'Hay consumos en USD pero no encontré la línea "DB.RG 5617 30%": revisá el campo Impuestos.'):'Sin consumos en USD: impuestos en 0.';
+    const miss=[!R.card&&'tarjeta',!R.due&&'vencimiento',!R.sub&&'subtotal'].filter(Boolean);
+    say('Detecté: '+f.join(' · ')+'. '+tx+(miss.length?' Falta completar: '+miss.join(', ')+'.':'')+' Revisá los datos y tocá Guardar resumen.');
+    if(R.notes)msg.textContent+=' Nota: '+R.notes;
+  }catch(e){
+    say(e&&e.message==='Cancelado'?'Lectura cancelada.':'No pude leer el archivo ('+((e&&e.message)||'error')+'). Revisá tu conexión (la lectura descarga un lector la primera vez) o completá a mano.',true);
+  }
 }
 function renderCards(){
   const pend=CARDS.filter(c=>!c.paid&&cDue(c)).map(c=>({c,d:daysTo(cDue(c))})).filter(x=>x.d<=7).sort((a,b)=>a.d-b.d);
@@ -1266,7 +1483,7 @@ function renderCards(){
     const st=c.paid?`<span class="tag good">Pagada${c.paidDate?' · '+esc(c.paidDate):''}</span>`:(dd!==null&&dd<0?'<span class="tag bad">Vencida</span>':'<span class="tag">Pendiente</span>');
     const sh=(c.shares||[]).map((x,i)=>`<span class="tag">${esc(x.name)} · ${A(+x.amount||0)} <label class="chk"><input type="checkbox" data-act="cshpaid" data-id="${c.id}" data-i="${i}"${x.paid?' checked':''}> pagó</label><button class="x" style="padding:0 4px" data-act="cshdel" data-id="${c.id}" data-i="${i}" title="Quitar">✕</button></span>`).join(' ');
     return `<div class="exp"><div class="exp-top"><div><b>${esc(c.card)}</b>${c.bank?' · '+esc(c.bank):''} ${st}<div class="small muted">${c.close?'Cierre '+esc(c.close)+' · ':''}Vence ${esc(cDue(c))}</div></div><div class="amt">${A(cTotal(c))}<div class="small muted">Mi parte: ${A(cMine(c))}</div>${+c.usd?`<div class="small muted">+ ${fmt(+c.usd,'USD')}</div>`:''}</div></div>
-    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="cpaid" data-id="${c.id}"${c.paid?' checked':''}> Pagada</label><span class="small muted">Sub $</span><input type="number" step="any" value="${+c.sub||''}" data-act="csub" data-id="${c.id}" style="width:110px"><span class="small muted">Imp.</span><input type="number" step="any" value="${+c.tax||''}" data-act="ctax" data-id="${c.id}" style="width:90px"><span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="cusd" data-id="${c.id}" style="width:80px"><button class="x" data-act="delcard" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div>
+    <div class="exp-ctl"><label class="chk"><input type="checkbox" data-act="cpaid" data-id="${c.id}"${c.paid?' checked':''}> Pagada</label>${calLinks(c)}<span class="small muted">Sub $</span><input type="number" step="any" value="${+c.sub||''}" data-act="csub" data-id="${c.id}" style="width:110px"><span class="small muted">Imp.</span><input type="number" step="any" value="${+c.tax||''}" data-act="ctax" data-id="${c.id}" style="width:90px"><span class="small muted">USD</span><input type="number" step="any" value="${+c.usd||''}" data-act="cusd" data-id="${c.id}" style="width:80px"><button class="x" data-act="delcard" data-t="✕" data-id="${c.id}" title="Borrar">✕</button></div>
     <div class="exp-ctl">${sh}<input class="shn" list="dlPeople" placeholder="Persona" style="width:100px"><input class="sha" type="number" step="any" placeholder="$" style="width:100px"><button class="chip" data-act="cshadd" data-id="${c.id}">+ Parte</button></div></div>`;
   }).join('');
   $('#cardsDyn').innerHTML=`
@@ -1662,6 +1879,7 @@ document.addEventListener('click',e=>{
   else if(a==='cshdel'){const c=CARDS.find(x=>x.id===id);if(c)cardUpd(id,{shares:(c.shares||[]).filter((_,i)=>i!==+b.dataset.i)})}
   else if(a==='recdel')twoTap(b,'z'+id,()=>{const gone=S.expenses.filter(x=>x.recurId===id);S.expenses=S.expenses.filter(x=>x.recurId!==id);commit();toast('Serie borrada ('+gone.length+')',()=>{S.expenses.push(...gone);commit()})});
   else if(a==='recari'){S.expenses.forEach(x=>{if(x.recurId===id){x.paidBy='ari';x.shared=true;x.sharedWith='Ari';x.sharePct=100}});commit();toast('Listo: todas pagó Ari y las debés completas')}
+  else if(a==='calics'){const c=CARDS.find(x=>x.id===id);if(c)icsDownload(c)}
   else if(a==='rmrecur')twoTap(b,'q'+id,()=>{const t0=today();S.expenses=S.expenses.filter(x=>!(x.recurId===id&&x.date>t0));commit()});
   else if(a==='addcom')addCommission();
   else if(a==='agadd')addAgent();
@@ -1679,6 +1897,7 @@ document.addEventListener('change',e=>{
   const t=e.target,a=t.dataset&&t.dataset.act;if(!a)return;
   const id=t.dataset.id,ex=S.expenses.find(x=>x.id===id);
   switch(a){
+    case 'kfile':{const f=t.files&&t.files[0];t.value='';if(f)readStatement(f);return}
     case 'accbal':{const a_=S.accounts.find(x=>x.id===id);if(a_)a_.balance=+t.value||0;break}
     case 'accname':{const a_=S.accounts.find(x=>x.id===id);if(a_&&t.value.trim())a_.name=t.value.trim();break}
     case 'pref':{const k=t.dataset.k,lim={taxPct:[0,60],efMonths:[1,24],commLimit:[5,100]}[k];if(lim)S[k]=Math.max(lim[0],Math.min(lim[1],+t.value||0));commit(true);return}

@@ -1,5 +1,5 @@
 // Mis finanzas - service worker. Subí el número de V cuando actualices la app.
-const V='finanzas-v8';
+const V='finanzas-v9';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
