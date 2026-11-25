@@ -403,7 +403,7 @@ const PAL=['#2f6fed','#f2994a','#27ae60','#eb5757','#9b51e0','#56ccf2','#f2c94c'
 const PAYS=['Efectivo','Débito','Crédito','Transferencia','Mercado Pago','Otro'];
 const CURS=['ARS','USD','EUR','BRL'];
 const KEY='finanzas_v1';
-const APP_V='24-nov-2026 (v10)';
+const APP_V='24-nov-2026 (v11)';
 const $=s=>document.querySelector(s);
 const p2=n=>String(n).padStart(2,'0');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1315,13 +1315,13 @@ function stmtParse(text){
   for(const[r,n]of cards){if(r.test(all)){R.card=n;break}}
   const banks=[[/ICBC/,'ICBC'],[/GALICIA/,'Galicia'],[/SANTANDER/,'Santander'],[/BBVA/,'BBVA'],[/MACRO/,'Macro'],[/BANCO\s+(?:DE\s+LA\s+)?NACION|\bBNA\b/,'Nación'],[/BANCO\s+PROVINCIA/,'Provincia'],[/BANCO\s+CIUDAD/,'Ciudad'],[/PATAGONIA/,'Patagonia'],[/HSBC/,'HSBC'],[/SUPERVIELLE/,'Supervielle'],[/ITAU/,'Itaú'],[/CREDICOOP/,'Credicoop'],[/COMAFI/,'Comafi'],[/BRUBANK/,'Brubank'],[/HIPOTECARIO/,'Hipotecario'],[/NARANJA\s*X/,'Naranja X']];
   for(const[r,n]of banks){if(r.test(all)){R.bank=n;break}}
-  const labelDate=(res)=>{
+  const labelDate=(res,allowProx)=>{
     const lone=t=>{const a=allDates(t||'');return a.length===1&&t.length-a[0].n<=3};
     for(const re of res){
       for(let i=0;i<L.length;i++){
         const m=L[i].match(re);if(!m)continue;
         const near=L[i].slice(Math.max(0,m.index-10),m.index+m[0].length+10);
-        if(/ANTERIOR|\bANT\b|PROX|SIGUIENTE/.test(near))continue;
+        if(/ANTERIOR|\bANT\b|SIGUIENTE/.test(near)||(!allowProx&&/PROX/.test(near)))continue;
         const tail=raw[i].slice(m.index);
         const d=allDates(tail);if(d.length)return d[0].d;
         const nx=allDates(raw[i+1]||'');
@@ -1334,7 +1334,7 @@ function stmtParse(text){
     return '';
   };
   let dd=labelDate([/VENC\w*\.?\s*ACTUAL/,/VTO\.?\s*ACTUAL/,/FECHA\s+DE\s+VENC\w*/,/\bVENCIMIENTO\b/,/\bVTO\b/]);
-  let cc=labelDate([/CIERRE\s*ACTUAL/,/FECHA\s+DE\s+CIERRE/,/ESTADO\s+DE\s+CUENTA\s+AL/,/\bCIERRE\b/]);
+  let cc=labelDate([/PROXIMO\s+CIERRE/,/PROX\.?\s+CIERRE/],true)||labelDate([/CIERRE\s*ACTUAL/,/FECHA\s+DE\s+CIERRE/,/ESTADO\s+DE\s+CUENTA\s+AL/,/\bCIERRE\b/]);
   const pr=[dd,cc].find(x=>x&&x.pair);
   if(pr){R.close=pr.pair[0];R.due=pr.pair[1]}else{R.due=dd||'';R.close=cc||''}
   if(typeof R.due!=='string')R.due='';if(typeof R.close!=='string')R.close='';
@@ -1412,8 +1412,8 @@ async function ocrBlobs(blobs){
 }
 async function stmtAI(text,images){
   const rules=`Sos un extractor de datos de resúmenes de tarjeta de crédito argentinos. Devolvé SOLO un objeto JSON (sin markdown) con esta forma:
-{"card": "Visa"|"Master"|"Amex"|otra marca o "", "bank": nombre del banco o "", "close": "YYYY-MM-DD" fecha de CIERRE ACTUAL o "", "due": "YYYY-MM-DD" fecha de VENCIMIENTO ACTUAL o "", "sub": número = total a pagar en PESOS (saldo actual en $), "usd": número = total de consumos/saldo en DÓLARES (U$S), 0 si no hay, "tax": número = suma en pesos de las líneas del impuesto del 30% sobre consumos en dólares (aparecen como "DB.RG 5617 30%" o "Impuesto PAIS"), 0 si no hay, "notes": frase corta con dudas}.
-Reglas: los números van sin separador de miles y con punto decimal (en el resumen están en formato argentino 1.234,56). Usá las fechas del período ACTUAL, no las anteriores ni las próximas. "tax" es 0 si no hay consumos en dólares. Hoy es ${today()}.`;
+{"card": "Visa"|"Master"|"Amex"|otra marca o "", "bank": nombre del banco o "", "close": "YYYY-MM-DD" fecha del PRÓXIMO CIERRE (no el actual ni el anterior) o "", "due": "YYYY-MM-DD" fecha de VENCIMIENTO ACTUAL o "", "sub": número = total a pagar en PESOS (saldo actual en $), "usd": número = total de consumos/saldo en DÓLARES (U$S), 0 si no hay, "tax": número = suma en pesos de las líneas del impuesto del 30% sobre consumos en dólares (aparecen como "DB.RG 5617 30%" o "Impuesto PAIS"), 0 si no hay, "notes": frase corta con dudas}.
+Reglas: los números van sin separador de miles y con punto decimal (en el resumen están en formato argentino 1.234,56). Para el vencimiento usá el VENCIMIENTO ACTUAL (no el anterior ni el próximo); para el cierre usá el PRÓXIMO CIERRE. "tax" es 0 si no hay consumos en dólares. Hoy es ${today()}.`;
   const o={modelTier:'default',cache:false};
   if(images&&images.length)o.images=images;
   const r=await sampleFn.json(images&&images.length?rules:rules+'\n\nTEXTO DEL RESUMEN:\n"""'+String(text).slice(0,24000)+'"""',o);
@@ -1457,7 +1457,7 @@ async function readStatement(file){
     updKTotal();
     const f=[];
     f.push(R.card?R.card+(R.bank?' '+R.bank:''):'tarjeta sin identificar');
-    f.push(R.close?'cierre '+R.close:'cierre ?');f.push(R.due?'vence '+R.due:'vencimiento ?');
+    f.push(R.close?'próximo cierre '+R.close:'cierre ?');f.push(R.due?'vence '+R.due:'vencimiento ?');
     f.push(R.sub?'subtotal '+A(R.sub):'subtotal ?');
     if(R.usd>0)f.push('USD '+R.usd.toLocaleString('es-AR',{minimumFractionDigits:2}));
     const tx=R.usd>0?(R.tax>0?'Impuesto 30% (RG 5617) restado: '+A(R.tax)+'.':'Hay consumos en USD pero no encontré la línea "DB.RG 5617 30%": revisá el campo Impuestos.'):'Sin consumos en USD: impuestos en 0.';
